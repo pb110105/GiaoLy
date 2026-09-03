@@ -661,3 +661,69 @@ button, a { -webkit-tap-highlight-color: transparent; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }
 }
+
+.year-picker{position:relative;margin:0 18px 22px;color:#fff}
+.year-picker-trigger{display:flex;align-items:center;gap:13px;min-height:84px;padding:16px;border:1px solid rgba(255,255,255,.17);border-radius:18px;background:rgba(255,255,255,.07);cursor:pointer;list-style:none;transition:background .18s,border-color .18s}
+.year-picker-trigger::-webkit-details-marker{display:none}
+.year-picker-trigger::marker{content:""}
+.year-picker-trigger:hover{background:rgba(255,255,255,.11);border-color:rgba(255,255,255,.27)}
+.year-picker-trigger:focus-visible{outline:2px solid #ffd2a6;outline-offset:3px}
+.year-picker-icon{display:grid;place-items:center;flex:0 0 46px;height:46px;border-radius:13px;background:rgba(255,181,115,.16);color:#ffdab0}
+.year-picker-text{display:flex;flex:1;min-width:0;flex-direction:column;gap:5px}
+.year-picker-text>span{font-size:12px;line-height:1.3;font-weight:600;color:rgba(255,255,255,.65);white-space:nowrap}
+.year-picker-text>strong{font-size:19px;line-height:1.2;font-weight:700;letter-spacing:.1px;white-space:nowrap}
+.year-picker-chevron{flex-shrink:0;color:#dfc6bd;transition:transform .18s}
+.year-picker[open] .year-picker-chevron{transform:rotate(180deg)}
+.year-picker-menu{position:absolute;top:calc(100% + 8px);left:0;right:0;z-index:100;max-height:260px;overflow-y:auto;padding:8px;border:1px solid #eadbd8;border-radius:14px;background:#fffaf8;box-shadow:0 12px 32px rgba(47,0,0,.24)}
+.year-picker-menu>p{margin:5px 10px 8px;font-size:10px;font-weight:700;letter-spacing:1px;color:#997b75}
+.year-picker-option{display:flex;align-items:center;justify-content:space-between;gap:10px;width:100%;padding:11px 12px;border:0;border-radius:9px;background:transparent;color:#58413c;font:inherit;font-size:14px;font-weight:600;text-align:left;cursor:pointer}
+.year-picker-option:hover{background:#f5e8e3}
+.year-picker-option.selected{background:#f8e0d8;color:#9d2117}
+.year-picker-option:focus-visible{outline:2px solid #b43b2a;outline-offset:-2px}
+.year-picker-empty{display:block;padding:10px;color:#856b64;font-size:13px}
+.sidebar.collapsed .year-picker{display:none}
+
+.sidebar .year-picker {
+  margin: 24px 0 22px;
+  min-width: 0;
+  flex-shrink: 0;
+}
+.year-picker .year-picker-trigger {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) 16px;
+  align-items: center;
+  gap: 10px;
+  min-height: 74px;
+  padding: 12px;
+  border-radius: 14px;
+}
+.year-picker .year-picker-icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+}
+.year-picker .year-picker-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.year-picker .year-picker-text {
+  min-width: 0;
+  gap: 5px;
+}
+.year-picker .year-picker-text > span {
+  font-size: 11px;
+  line-height: 1.3;
+}
+.year-picker .year-picker-text > strong {
+  margin: 0;
+  font-size: 16px;
+  line-height: 1.3;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.year-picker .year-picker-chevron {
+  width: 16px;
+  height: 16px;
+  justify-self: end;
+}

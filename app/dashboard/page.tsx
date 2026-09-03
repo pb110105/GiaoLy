@@ -108,12 +108,12 @@ function createInitials(fullName: string) {
     .toUpperCase();
 }
 const navigation: NavItem[] = [
-  { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
-  { id: "students", label: "Học viên", icon: UsersRound },
+  { id: "dashboard", label: "Tổng quan (Comming Soon)", icon: LayoutDashboard },
+  { id: "students", label: "Học viên (Comming Soon)", icon: UsersRound },
   { id: "classes", label: "Lớp giáo lý", icon: BookOpen },
-  { id: "attendance", label: "Điểm danh", icon: ClipboardCheck },
-  { id: "sacraments", label: "Bí tích", icon: Cross },
-  { id: "reports", label: "Báo cáo", icon: BarChart3 },
+  { id: "attendance", label: "Điểm danh (Comming Soon)", icon: ClipboardCheck },
+  { id: "sacraments", label: "Bí tích (Comming Soon)", icon: Cross },
+  { id: "reports", label: "Báo cáo (Comming Soon)", icon: BarChart3 },
 ];
 
 const featureSets: Record<string, Array<{ title: string; caption: string; icon: LucideIcon }>> = {
@@ -149,7 +149,7 @@ function StudentAvatar({ student }: { student: Student }) {
 
 export default function Home() {
   const router = useRouter();
-
+  const [selectedSchoolYear, setSelectedSchoolYear] = useState("");
   const [dashboardData, setDashboardData] =
     useState<DashboardSuccessResponse | null>(null);
 
@@ -214,67 +214,80 @@ export default function Home() {
 
   return () => controller.abort();
 }, [router]);
-const students = useMemo<Student[]>(() => {
-  if (!dashboardData) return [];
 
-  const classNameById = new Map(
-    dashboardData.classes.map((classItem) => [
-      classItem.id,
-      classItem.className,
-    ]),
+const schoolYears = useMemo(() => {
+  const years = (dashboardData?.classes ?? [])
+    .map((item) => item.schoolYear.trim())
+    .filter(Boolean);
+
+  return [...new Set(years)].sort((a, b) =>
+    b.localeCompare(a, "vi", { numeric: true }),
+  );
+}, [dashboardData]);
+
+const schoolYear = schoolYears.includes(selectedSchoolYear)
+  ? selectedSchoolYear
+  : schoolYears[0] ?? "";
+
+const yearData = useMemo(() => {
+  const classes = (dashboardData?.classes ?? []).filter(
+    (item) => schoolYear && item.schoolYear.trim() === schoolYear,
   );
 
-  const colors = ["coral", "blue", "violet", "mint"];
+  const classIds = new Set(classes.map((item) => item.id));
 
-  return dashboardData.students.map((student, index) => ({
-    name: student.fullName,
-    initials: createInitials(student.fullName),
-    className:
-      classNameById.get(student.classId) ?? "Chưa xác định",
-    guardian: student.guardianName,
-    status: "Đang học",
-    color: colors[index % colors.length],
-  }));
-}, [dashboardData]);
+  const students = (dashboardData?.students ?? []).filter(
+    (item) => classIds.has(item.classId),
+  );
 
-const classes = useMemo(() => {
-  if (!dashboardData) return [];
-
-  const tones = [
-    "mint",
-    "blue",
-    "coral",
-    "violet",
-    "amber",
-    "navy",
-  ];
-
-  return dashboardData.classes.map((classItem, index) => ({
-    id: classItem.id,
-    name: classItem.className,
-    teacher: `GLV. ${dashboardData.teacher.fullName}`,
-    students: dashboardData.students.filter(
-      (student) => student.classId === classItem.id,
-    ).length,
-    schedule: classItem.schedule,
-    room: classItem.room,
-    schoolYear: classItem.schoolYear,
-    progress: 0,
-    tone: tones[index % tones.length],
-  }));
-}, [dashboardData]);
+  return { classes, students };
+}, [dashboardData, schoolYear]);
 
 const teacherName =
   dashboardData?.teacher.fullName ?? "Ban Giáo lý";
 
-const studentCount =
-  dashboardData?.summary.studentCount ?? 0;
+const students = useMemo<Student[]>(() => {
+  const classNames = new Map(
+    yearData.classes.map((item) => [item.id, item.className]),
+  );
+  const colors = ["coral", "blue", "violet", "mint"];
 
-const classCount =
-  dashboardData?.summary.classCount ?? 0;
+  return yearData.students.map((student, index) => ({
+    name: student.fullName,
+    initials: createInitials(student.fullName),
+    className: classNames.get(student.classId) ?? "Chưa xác định",
+    guardian: student.guardianName,
+    status: "Đang học",
+    color: colors[index % colors.length],
+  }));
+}, [yearData]);
 
-const schoolYear =
-  dashboardData?.classes[0]?.schoolYear ?? "Chưa phân công";
+const classes = useMemo(() => {
+  const tones = ["mint", "blue", "coral", "violet", "amber", "navy"];
+  const studentCounts = new Map<string, number>();
+
+  for (const student of yearData.students) {
+    studentCounts.set(
+      student.classId,
+      (studentCounts.get(student.classId) ?? 0) + 1,
+    );
+  }
+
+  return yearData.classes.map((item, index) => ({
+    id: item.id,
+    name: item.className,
+    teacher: `GLV. ${teacherName}`,
+    students: studentCounts.get(item.id) ?? 0,
+    schedule: item.schedule,
+    room: item.room,
+    schoolYear: item.schoolYear,
+    progress: 0,
+    tone: tones[index % tones.length],
+  }));
+}, [yearData, teacherName]);
+
+const studentCount = students.length;
+const classCount = classes.length;
 
 const filteredStudents = useMemo(() => {
   const query = searchQuery
@@ -378,11 +391,63 @@ if (!dashboardData) {
           <button className="icon-button close-sidebar" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
         </div>
 
-        <div className="school-year-card">
-          <div className="school-year-icon"><CalendarDays size={18} /></div>
-          <div><span>Niên khóa hiện tại</span><strong>{schoolYear}</strong></div>
-          <ChevronDown size={17} />
-        </div>
+        <details
+          className="year-picker"
+          onBlur={(event) => {
+            if (!event.currentTarget.contains(event.relatedTarget)) {
+              event.currentTarget.open = false;
+            }
+          }}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") {
+              event.currentTarget.open = false;
+              event.currentTarget.querySelector("summary")?.focus();
+            }
+          }}
+        >
+          <summary className="year-picker-trigger">
+            <span className="year-picker-icon">
+              <CalendarDays size={22} />
+            </span>
+
+            <span className="year-picker-text">
+              <span>Niên khóa</span>
+              <strong>{schoolYear || "Chưa phân công"}</strong>
+            </span>
+
+            <ChevronDown size={18} className="year-picker-chevron" />
+          </summary>
+
+          <div className="year-picker-menu">
+            <p>CHỌN NIÊN KHÓA</p>
+
+            {schoolYears.length ? schoolYears.map((year) => (
+              <button
+                key={year}
+                type="button"
+                className={`year-picker-option ${schoolYear === year ? "selected" : ""}`}
+                aria-pressed={schoolYear === year}
+                onClick={(event) => {
+                  setSelectedSchoolYear(year);
+                  setSearchQuery("");
+                  setAttendance({});
+                  setShowAddStudent(false);
+
+                  const picker = event.currentTarget.closest("details");
+                  if (picker) {
+                    picker.open = false;
+                    picker.querySelector("summary")?.focus();
+                  }
+                }}
+              >
+                <span>{year}</span>
+                {schoolYear === year && <Check size={17} />}
+              </button>
+            )) : (
+              <span className="year-picker-empty">Chưa có lớp được phân công.</span>
+            )}
+          </div>
+        </details>
 
         <nav className="sidebar-nav" aria-label="Điều hướng chính">
           <span className="nav-heading">QUẢN LÝ</span>
