@@ -1,0 +1,704 @@
+"use client";
+
+import {
+  useEffect,
+  useMemo,
+  useState,
+  type FormEvent,
+} from "react";
+import { useRouter } from "next/navigation";
+import {
+  AlertCircle,
+  ArrowUpRight,
+  BarChart3,
+  Bell,
+  BookOpen,
+  CalendarDays,
+  Check,
+  ChevronDown,
+  ChevronRight,
+  CircleUserRound,
+  ClipboardCheck,
+  Clock3,
+  Cross,
+  Download,
+  FileText,
+  Filter,
+  LayoutDashboard,
+  Mail,
+  Menu,
+  MoreHorizontal,
+  PanelLeftClose,
+  PanelLeftOpen,
+  Phone,
+  Plus,
+  Save,
+  Search,
+  Settings,
+  TrendingUp,
+  UserCheck,
+  UserPlus,
+  UsersRound,
+  X,
+  type LucideIcon,
+} from "lucide-react";
+
+type NavItem = { id: string; label: string; icon: LucideIcon };
+type Student = {
+  name: string;
+  initials: string;
+  className: string;
+  guardian: string;
+  status: "Đang học" | "Cần bổ sung";
+  color: string;
+};
+type DashboardSuccessResponse = {
+  success: true;
+  teacher: {
+    id: string;
+    accountId: string;
+    fullName: string;
+    phone: string;
+    email: string;
+    role: string;
+  };
+  summary: {
+    classCount: number;
+    studentCount: number;
+  };
+  classes: Array<{
+    id: string;
+    classCode: string;
+    className: string;
+    gradeLevel: string;
+    schoolYear: string;
+    schedule: string;
+    room: string;
+    status: string;
+    assignmentRole: string;
+  }>;
+  students: Array<{
+    id: string;
+    studentCode: string;
+    fullName: string;
+    classId: string;
+    birthDate: string;
+    gender: string;
+    guardianName: string;
+    guardianPhone: string;
+    status: string;
+  }>;
+};
+
+type DashboardResponse =
+  | DashboardSuccessResponse
+  | {
+      success: false;
+      message: string;
+    };
+
+function createInitials(fullName: string) {
+  return fullName
+    .trim()
+    .split(/\s+/)
+    .filter(Boolean)
+    .slice(-2)
+    .map((word) => word.charAt(0))
+    .join("")
+    .toUpperCase();
+}
+const navigation: NavItem[] = [
+  { id: "dashboard", label: "Tổng quan", icon: LayoutDashboard },
+  { id: "students", label: "Học viên", icon: UsersRound },
+  { id: "classes", label: "Lớp giáo lý", icon: BookOpen },
+  { id: "attendance", label: "Điểm danh", icon: ClipboardCheck },
+  { id: "sacraments", label: "Bí tích", icon: Cross },
+  { id: "reports", label: "Báo cáo", icon: BarChart3 },
+];
+
+const featureSets: Record<string, Array<{ title: string; caption: string; icon: LucideIcon }>> = {
+  sacraments: [
+    { title: "Rửa Tội", caption: "184 hồ sơ", icon: Cross },
+    { title: "Rước Lễ Lần Đầu", caption: "56 đang chuẩn bị", icon: BookOpen },
+    { title: "Thêm Sức", caption: "62 đang chuẩn bị", icon: UserCheck },
+    { title: "Chứng nhận", caption: "12 cần bổ sung", icon: FileText },
+  ],
+  reports: [
+    { title: "Danh sách học viên", caption: "Theo lớp và khối", icon: UsersRound },
+    { title: "Báo cáo chuyên cần", caption: "Theo tuần và học kỳ", icon: ClipboardCheck },
+    { title: "Tiến độ lớp học", caption: "So sánh 8 lớp", icon: BarChart3 },
+    { title: "Hồ sơ Bí tích", caption: "Tổng hợp chứng nhận", icon: FileText },
+  ],
+  settings: [
+    { title: "Thông tin giáo xứ", caption: "Tên và thông tin liên hệ", icon: Cross },
+    { title: "Niên khóa", caption: "2026 – 2027", icon: CalendarDays },
+    { title: "Người dùng", caption: "Vai trò và phân quyền", icon: UsersRound },
+    { title: "Sao lưu dữ liệu", caption: "Xuất dữ liệu định kỳ", icon: Download },
+  ],
+};
+
+const weeklyAttendance = [78, 84, 81, 90, 86, 92];
+
+function LogoMark() {
+  return <span className="logo-mark" aria-hidden="true"><Cross size={20} strokeWidth={2.3} /></span>;
+}
+
+function StudentAvatar({ student }: { student: Student }) {
+  return <span className={`student-avatar ${student.color}`}>{student.initials}</span>;
+}
+
+export default function Home() {
+  const router = useRouter();
+
+  const [dashboardData, setDashboardData] =
+    useState<DashboardSuccessResponse | null>(null);
+
+  const [isLoadingDashboard, setIsLoadingDashboard] =
+    useState(true);
+
+  const [dashboardError, setDashboardError] = useState("");
+  const [activeView, setActiveView] = useState("dashboard");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [showAddStudent, setShowAddStudent] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [toast, setToast] = useState("");
+  const [attendance, setAttendance] = useState<
+  Record<string, "present" | "absent" | "excused">
+  >({});
+
+  useEffect(() => {
+  const controller = new AbortController();
+  
+  async function loadDashboard() {
+    try {
+      const response = await fetch("/api/dashboard", {
+        method: "GET",
+        cache: "no-store",
+        signal: controller.signal,
+      });
+
+      const data = (await response.json()) as DashboardResponse;
+
+      if (!data.success) {
+        if (response.status === 401 || response.status === 403) {
+          router.replace("/login");
+          return;
+        }
+
+        throw new Error(data.message);
+      }
+
+      setDashboardData(data);
+    } catch (error) {
+      if (
+        error instanceof DOMException &&
+        error.name === "AbortError"
+      ) {
+        return;
+      }
+
+      setDashboardError(
+        error instanceof Error
+          ? error.message
+          : "Không thể tải dữ liệu dashboard.",
+      );
+    } finally {
+      if (!controller.signal.aborted) {
+        setIsLoadingDashboard(false);
+      }
+    }
+  }
+
+  void loadDashboard();
+
+  return () => controller.abort();
+}, [router]);
+const students = useMemo<Student[]>(() => {
+  if (!dashboardData) return [];
+
+  const classNameById = new Map(
+    dashboardData.classes.map((classItem) => [
+      classItem.id,
+      classItem.className,
+    ]),
+  );
+
+  const colors = ["coral", "blue", "violet", "mint"];
+
+  return dashboardData.students.map((student, index) => ({
+    name: student.fullName,
+    initials: createInitials(student.fullName),
+    className:
+      classNameById.get(student.classId) ?? "Chưa xác định",
+    guardian: student.guardianName,
+    status: "Đang học",
+    color: colors[index % colors.length],
+  }));
+}, [dashboardData]);
+
+const classes = useMemo(() => {
+  if (!dashboardData) return [];
+
+  const tones = [
+    "mint",
+    "blue",
+    "coral",
+    "violet",
+    "amber",
+    "navy",
+  ];
+
+  return dashboardData.classes.map((classItem, index) => ({
+    id: classItem.id,
+    name: classItem.className,
+    teacher: `GLV. ${dashboardData.teacher.fullName}`,
+    students: dashboardData.students.filter(
+      (student) => student.classId === classItem.id,
+    ).length,
+    schedule: classItem.schedule,
+    room: classItem.room,
+    schoolYear: classItem.schoolYear,
+    progress: 0,
+    tone: tones[index % tones.length],
+  }));
+}, [dashboardData]);
+
+const teacherName =
+  dashboardData?.teacher.fullName ?? "Ban Giáo lý";
+
+const studentCount =
+  dashboardData?.summary.studentCount ?? 0;
+
+const classCount =
+  dashboardData?.summary.classCount ?? 0;
+
+const schoolYear =
+  dashboardData?.classes[0]?.schoolYear ?? "Chưa phân công";
+
+const filteredStudents = useMemo(() => {
+  const query = searchQuery
+    .trim()
+    .toLocaleLowerCase("vi");
+
+  if (!query) {
+    return students;
+  }
+
+  return students.filter((student) =>
+    `${student.name} ${student.className} ${student.guardian}`
+      .toLocaleLowerCase("vi")
+      .includes(query),
+  );
+}, [searchQuery, students]);
+
+if (isLoadingDashboard) {
+  return (
+    <main className="dashboard-state">
+      <div>
+        <span className="dashboard-spinner" />
+
+        <strong>Đang tải dữ liệu...</strong>
+
+        <p>
+          Đang lấy lớp và học viên được phân công.
+        </p>
+      </div>
+    </main>
+  );
+}
+
+if (dashboardError) {
+  return (
+    <main className="dashboard-state">
+      <div>
+        <strong>Không thể tải dashboard</strong>
+
+        <p>{dashboardError}</p>
+
+        <button
+          type="button"
+          onClick={() => window.location.reload()}
+        >
+          Thử lại
+        </button>
+      </div>
+    </main>
+  );
+}
+
+if (!dashboardData) {
+  return null;
+}
+
+  function selectView(id: string) {
+    setActiveView(id);
+    setSidebarOpen(false);
+  }
+
+  function handleAddStudent(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setShowAddStudent(false);
+    setToast("Đã lưu học viên vào bản giao diện mẫu.");
+    window.setTimeout(() => setToast(""), 2800);
+  }
+
+  return (
+    <div className="app-shell">
+      <button className={`sidebar-scrim ${sidebarOpen ? "show" : ""}`} aria-label="Đóng menu" onClick={() => setSidebarOpen(false)} />
+
+      <aside
+        id="dashboard-sidebar"
+        className={`sidebar ${sidebarOpen ? "open" : ""} ${
+          sidebarCollapsed ? "collapsed" : ""
+        }`}
+      >
+        <button
+          type="button"
+          className="icon-button sidebar-toggle"
+          aria-controls="dashboard-sidebar"
+          aria-expanded={!sidebarCollapsed}
+          aria-label={
+            sidebarCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"
+          }
+          title={
+            sidebarCollapsed ? "Mở rộng thanh bên" : "Thu gọn thanh bên"
+          }
+          onClick={() => setSidebarCollapsed((current) => !current)}
+        >
+          {sidebarCollapsed ? (
+            <PanelLeftOpen size={17} />
+          ) : (
+            <PanelLeftClose size={17} />
+          )}
+        </button>
+        <div className="brand-row">
+          <LogoMark />
+          <div><strong>Giáo Lý Hub</strong><span>Giáo xứ Biên Hoà</span></div>
+          <button className="icon-button close-sidebar" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
+        </div>
+
+        <div className="school-year-card">
+          <div className="school-year-icon"><CalendarDays size={18} /></div>
+          <div><span>Niên khóa hiện tại</span><strong>{schoolYear}</strong></div>
+          <ChevronDown size={17} />
+        </div>
+
+        <nav className="sidebar-nav" aria-label="Điều hướng chính">
+          <span className="nav-heading">QUẢN LÝ</span>
+          {navigation.map((item) => {
+            const Icon = item.icon;
+            return (
+              <button key={item.id} className={`nav-item ${activeView === item.id ? "active" : ""}`}  title={sidebarCollapsed ? item.label : undefined} onClick={() => selectView(item.id)}>
+                <Icon size={19} strokeWidth={1.9} />
+                <span>{item.label}</span>
+                {item.id === "students" && <em>{studentCount}</em>}
+              </button>
+            );
+          })}
+          <span className="nav-heading nav-heading-spaced">HỆ THỐNG</span>
+          <button className="nav-item" onClick={() => selectView("settings")}><Settings size={19} strokeWidth={1.9} /><span>Cài đặt</span></button>
+        </nav>
+
+        <div className="sidebar-support">
+          <div className="support-icon"><BookOpen size={19} /></div>
+          <strong>Cần hỗ trợ?</strong>
+          <span>Xem hướng dẫn sử dụng hệ thống</span>
+          <button>Đọc hướng dẫn <ArrowUpRight size={14} /></button>
+        </div>
+
+        <div className="sidebar-user">
+          <span className="user-avatar">GL</span>
+          <div><strong>{teacherName}</strong><span>Giáo Lý Viên</span></div>
+          <MoreHorizontal size={18} />
+        </div>
+      </aside>
+
+      <main className={`main-area ${
+        sidebarCollapsed ? "sidebar-collapsed" : ""
+      }`}>
+        <header className="topbar">
+          <button className="icon-button mobile-menu" aria-label="Mở menu" onClick={() => setSidebarOpen(true)}><Menu size={22} /></button>
+          <label className="global-search">
+            <Search size={18} />
+            <input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Tìm học viên, lớp học..." aria-label="Tìm kiếm" />
+            <kbd>⌘ K</kbd>
+          </label>
+          <div className="topbar-actions">
+            <button className="icon-button notification-button" aria-label="Thông báo"><Bell size={20} /><span /></button>
+            <button className="quick-add" onClick={() => setShowAddStudent(true)}><Plus size={18} /><span>Thêm học viên</span></button>
+          </div>
+        </header>
+
+        <div className="content-wrap">
+          <div className={activeView === "dashboard" ? "view-screen" : "view-screen hidden-view"}>
+          <section className="page-heading">
+            <div>
+              <span className="eyebrow">THỨ BẢY, 15 THÁNG 8</span>
+              <h1>Chào buổi chiều, {teacherName}!</h1>
+              <p>Đây là tình hình sinh hoạt giáo lý của giáo xứ hôm nay.</p>
+            </div>
+            <button className="secondary-button"><Download size={17} />Xuất báo cáo</button>
+          </section>
+
+          <section className="stat-grid" aria-label="Số liệu tổng quan">
+            <article className="stat-card">
+              <div className="stat-icon navy"><UsersRound size={21} /></div>
+              <div className="stat-copy"><span>Học viên phụ trách</span><strong>{studentCount}</strong></div>
+              <span className="trend positive">Theo lớp phụ trách</span>
+            </article>
+            <article className="stat-card">
+              <div className="stat-icon sky"><BookOpen size={21} /></div>
+              <div className="stat-copy"><span>Lớp đang học</span><strong>{String(classCount).padStart(2, "0")}</strong></div>
+              <span className="trend neutral">
+                Theo phân công
+              </span>
+            </article>
+            <article className="stat-card">
+              <div className="stat-icon mint"><UserCheck size={21} /></div>
+              <div className="stat-copy"><span>Điểm danh tuần này</span><strong>92%</strong></div>
+              <span className="trend positive"><TrendingUp size={13} /> 4,2%</span>
+            </article>
+            <article className="stat-card warning-card">
+              <div className="stat-icon amber"><AlertCircle size={21} /></div>
+              <div className="stat-copy"><span>Hồ sơ cần bổ sung</span><strong>07</strong></div>
+              <button className="mini-link">Xem ngay <ChevronRight size={14} /></button>
+            </article>
+          </section>
+
+          <section className="dashboard-grid">
+            <article className="panel attendance-panel">
+              <div className="panel-heading">
+                <div><span className="panel-kicker">CHUYÊN CẦN</span><h2>Tỷ lệ tham dự 6 tuần gần đây</h2></div>
+                <button className="period-button">6 tuần <ChevronDown size={15} /></button>
+              </div>
+              <div className="chart-summary"><strong>86,8%</strong><span><TrendingUp size={14} /> Cao hơn 3,1% so với kỳ trước</span></div>
+              <div className="bar-chart" aria-label="Biểu đồ tỷ lệ tham dự 6 tuần">
+                {weeklyAttendance.map((value, index) => (
+                  <div className="bar-column" key={value + index}>
+                    <div className="bar-track">
+                      <div className={`bar-fill ${index === weeklyAttendance.length - 1 ? "latest" : ""}`} style={{ height: `${value}%` }}>
+                        {index === weeklyAttendance.length - 1 && <span>{value}%</span>}
+                      </div>
+                    </div>
+                    <small>Tuần {index + 1}</small>
+                  </div>
+                ))}
+              </div>
+            </article>
+
+            <article className="panel schedule-panel">
+              <div className="panel-heading">
+                <div><span className="panel-kicker">HÔM NAY</span><h2>Lịch sinh hoạt</h2></div>
+                <button className="circle-link" aria-label="Xem lịch"><ArrowUpRight size={17} /></button>
+              </div>
+              <div className="schedule-list">
+                <div className="schedule-item"><time>14:00</time><span className="schedule-line coral-line" /><div><strong>Rước Lễ 1B</strong><span><CircleUserRound size={14} /> GLV. Minh Thư · Phòng 03</span></div><em>28 em</em></div>
+                <div className="schedule-item"><time>15:30</time><span className="schedule-line blue-line" /><div><strong>Thêm Sức 2A</strong><span><CircleUserRound size={14} /> GLV. Hoàng Nam · Hội trường</span></div><em>31 em</em></div>
+                <div className="schedule-item"><time>17:00</time><span className="schedule-line mint-line" /><div><strong>Ca đoàn thiếu nhi</strong><span><Clock3 size={14} /> Nhà thờ chính</span></div><em>45 em</em></div>
+              </div>
+              <button className="full-link">Xem lịch đầy đủ <ChevronRight size={15} /></button>
+            </article>
+          </section>
+
+          <section className="bottom-grid">
+            <article className="panel students-panel">
+              <div className="panel-heading table-panel-heading">
+                <div><span className="panel-kicker">HỌC VIÊN</span><h2>Hồ sơ cập nhật gần đây</h2></div>
+                <button className="text-link" onClick={() => selectView("students")}>Xem tất cả <ChevronRight size={15} /></button>
+              </div>
+              <div className="student-table-wrap">
+                <table className="student-table">
+                  <thead><tr><th>HỌC VIÊN</th><th>LỚP</th><th>PHỤ HUYNH</th><th>TRẠNG THÁI</th><th><span className="sr-only">Tùy chọn</span></th></tr></thead>
+                  <tbody>
+                    {filteredStudents.slice(0, 4).map((student) => (
+                      <tr key={student.name}>
+                        <td><div className="student-name-cell"><StudentAvatar student={student} /><strong>{student.name}</strong></div></td>
+                        <td>{student.className}</td><td>{student.guardian}</td>
+                        <td><span className={`status-pill ${student.status === "Đang học" ? "active" : "pending"}`}>{student.status === "Đang học" && <Check size={12} />}{student.status}</span></td>
+                        <td><button className="table-action" aria-label={`Tùy chọn cho ${student.name}`}><MoreHorizontal size={18} /></button></td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                {filteredStudents.length === 0 && <div className="empty-search">Không tìm thấy học viên phù hợp.</div>}
+              </div>
+            </article>
+
+            <article className="panel attention-panel">
+              <div className="panel-heading"><div><span className="panel-kicker">CẦN CHÚ Ý</span><h2>Việc cần xử lý</h2></div><span className="task-count">4</span></div>
+              <div className="task-list">
+                <button className="task-item"><span className="task-icon amber"><AlertCircle size={17} /></span><span><strong>7 hồ sơ còn thiếu</strong><small>Giấy khai sinh hoặc chứng nhận Bí tích</small></span><ChevronRight size={17} /></button>
+                <button className="task-item"><span className="task-icon coral"><CalendarDays size={17} /></span><span><strong>3 em vắng hai tuần</strong><small>Cần liên hệ phụ huynh để xác nhận</small></span><ChevronRight size={17} /></button>
+                <button className="task-item"><span className="task-icon blue"><ClipboardCheck size={17} /></span><span><strong>Điểm danh chưa hoàn tất</strong><small>Lớp Khai Tâm 2 · Tuần 6</small></span><ChevronRight size={17} /></button>
+              </div>
+            </article>
+          </section>
+          </div>
+
+          {activeView === "students" && (
+            <section className="module-view">
+              <div className="module-heading">
+                <div><span className="eyebrow">QUẢN LÝ HỌC VIÊN</span><h1>Danh sách học viên</h1><p>Theo dõi hồ sơ, lớp học và thông tin liên hệ phụ huynh.</p></div>
+                <button className="primary-button module-primary" onClick={() => setShowAddStudent(true)}><UserPlus size={17} /> Thêm học viên</button>
+              </div>
+              <div className="module-stat-row">
+                <div>
+                  <span>Học viên phụ trách</span>
+                  <strong>{studentCount}</strong>
+                </div>
+
+                <div>
+                  <span>Đang theo học</span>
+                  <strong>{studentCount}</strong>
+                </div>
+
+                <div>
+                  <span>Lớp phụ trách</span>
+                  <strong>{classCount}</strong>
+                </div>
+
+                <div>
+                  <span>Hồ sơ chưa đủ</span>
+                  <strong>0</strong>
+                </div>
+              </div>
+              <article className="panel directory-panel">
+                <div className="directory-tools">
+                  <label className="directory-search"><Search size={17} /><input value={searchQuery} onChange={(event) => setSearchQuery(event.target.value)} placeholder="Tìm theo tên học viên hoặc phụ huynh" /></label>
+                  <button className="filter-button"><Filter size={16} /> Tất cả lớp <ChevronDown size={14} /></button>
+                  <button className="filter-button"><Filter size={16} /> Trạng thái <ChevronDown size={14} /></button>
+                  <button className="secondary-button export-students"><Download size={16} /> Xuất danh sách</button>
+                </div>
+                <div className="student-table-wrap module-table">
+                  <table className="student-table">
+                    <thead><tr><th>HỌC VIÊN</th><th>LỚP GIÁO LÝ</th><th>PHỤ HUYNH</th><th>LIÊN HỆ</th><th>TRẠNG THÁI</th><th><span className="sr-only">Tùy chọn</span></th></tr></thead>
+                    <tbody>
+                      {filteredStudents.map((student, index) => (
+                        <tr key={student.name}>
+                          <td><div className="student-name-cell"><StudentAvatar student={student} /><div className="student-detail"><strong>{student.name}</strong><span>Mã: GL{String(2601 + index).padStart(4, "0")}</span></div></div></td>
+                          <td><span className="class-chip">{student.className}</span></td>
+                          <td>{student.guardian}</td>
+                          <td><div className="contact-cell"><button aria-label={`Gọi cho phụ huynh của ${student.name}`}><Phone size={14} /></button><button aria-label={`Gửi thư cho phụ huynh của ${student.name}`}><Mail size={14} /></button></div></td>
+                          <td><span className={`status-pill ${student.status === "Đang học" ? "active" : "pending"}`}>{student.status === "Đang học" && <Check size={12} />}{student.status}</span></td>
+                          <td><button className="table-action" aria-label={`Tùy chọn cho ${student.name}`}><MoreHorizontal size={18} /></button></td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                  {filteredStudents.length === 0 && <div className="empty-search">Không tìm thấy học viên phù hợp.</div>}
+                </div>
+                <div className="pagination-row"><span>Hiển thị {filteredStudents.length} trong tổng số {studentCount} học viên</span><div><button disabled>Trước</button><button className="current">1</button><button>2</button><button>3</button><button>Sau</button></div></div>
+              </article>
+            </section>
+          )}
+
+          {activeView === "classes" && (
+            <section className="module-view">
+              <div className="module-heading">
+                <div><span className="eyebrow">NIÊN KHÓA {schoolYear}</span><h1>Lớp giáo lý</h1><p>Quản lý giáo lý viên, lịch học và tiến độ của từng lớp.</p></div>
+                <button className="primary-button module-primary" onClick={() => { setToast("Đã mở quy trình tạo lớp mới."); window.setTimeout(() => setToast(""), 2500); }}><Plus size={17} /> Tạo lớp mới</button>
+              </div>
+              <div className="class-toolbar">
+                <div className="segmented"><button className="active">Tất cả lớp <span>{classCount}</span></button><button>Đang học <span>{classCount}</span></button><button>Đã kết thúc <span>0</span></button></div>
+                <button className="filter-button"><CalendarDays size={16} /> NIÊN KHÓA {schoolYear} <ChevronDown size={14} /></button>
+              </div>
+              <div className="class-grid">
+                {classes.map((item) => (
+                  <article className="class-card" key={item.name}>
+                    <div className={`class-accent ${item.tone}`} />
+                    <div className="class-card-head"><span className={`class-symbol ${item.tone}`}><BookOpen size={20} /></span><button className="table-action" aria-label={`Tùy chọn lớp ${item.name}`}><MoreHorizontal size={18} /></button></div>
+                    <h2>{item.name}</h2><p>{item.teacher}</p>
+                    <div className="class-meta"><span><UsersRound size={15} /> {item.students} học viên</span><span><CalendarDays size={15} /> {item.schedule}</span><span><CircleUserRound size={15} /> {item.room}</span></div>
+                    <div className="progress-copy"><span>Tiến độ chương trình</span><strong>{item.progress}%</strong></div>
+                    <div className="progress-track"><span style={{ width: `${item.progress}%` }} /></div>
+                    <button className="class-open" onClick={() => setActiveView("attendance")}>Xem chi tiết lớp <ChevronRight size={15} /></button>
+                  </article>
+                ))}
+              </div>
+            </section>
+          )}
+
+          {activeView === "attendance" && (
+            <section className="module-view">
+              <div className="module-heading">
+                <div><span className="eyebrow">CHUYÊN CẦN</span><h1>Điểm danh lớp học</h1><p>Ghi nhận tình trạng tham dự của học viên theo từng buổi.</p></div>
+                <button className="primary-button module-primary" onClick={() => { setToast("Đã lưu điểm danh buổi học."); window.setTimeout(() => setToast(""), 2500); }}><Save size={17} /> Lưu điểm danh</button>
+              </div>
+              <div className="attendance-layout">
+                <article className="panel attendance-sheet">
+                  <div className="attendance-controls">
+                    <label><span>Lớp giáo lý</span><select defaultValue="Thêm Sức 2A"><option>Thêm Sức 2A</option><option>Rước Lễ 1B</option><option>Khai Tâm 2</option></select></label>
+                    <label><span>Ngày học</span><input type="date" defaultValue="2026-08-15" /></label>
+                    <div><span>Buổi học</span><strong>Tuần 6 · Bài 04</strong></div>
+                  </div>
+                  <div className="attendance-summary"><span><i className="present-dot" /> Có mặt <strong>{Object.values(attendance).filter((value) => value === "present").length}</strong></span><span><i className="excused-dot" /> Có phép <strong>{Object.values(attendance).filter((value) => value === "excused").length}</strong></span><span><i className="absent-dot" /> Vắng <strong>{Object.values(attendance).filter((value) => value === "absent").length}</strong></span></div>
+                  <div className="attendance-list">
+                    {students.slice(0, 6).map((student, index) => (
+                      <div className="attendance-row" key={student.name}>
+                        <span className="row-number">{String(index + 1).padStart(2, "0")}</span><StudentAvatar student={student} /><div className="attendance-name"><strong>{student.name}</strong><span>GL{String(2601 + index).padStart(4, "0")}</span></div>
+                        <div className="attendance-options" role="group" aria-label={`Điểm danh ${student.name}`}>
+                          <button className={attendance[student.name] === "present" ? "selected present" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "present" })}><Check size={14} /> Có mặt</button>
+                          <button className={attendance[student.name] === "excused" ? "selected excused" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "excused" })}>Có phép</button>
+                          <button className={attendance[student.name] === "absent" ? "selected absent" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "absent" })}>Vắng</button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </article>
+                <aside className="panel session-card">
+                  <span className="panel-kicker">THÔNG TIN BUỔI HỌC</span><h2>Thêm Sức 2A</h2>
+                  <div className="session-date"><CalendarDays size={19} /><div><strong>Thứ Bảy, 15/08/2026</strong><span>15:30 – 16:45</span></div></div>
+                  <dl><div><dt>Giáo lý viên</dt><dd>Hoàng Nam</dd></div><div><dt>Phòng học</dt><dd>Hội trường</dd></div><div><dt>Sĩ số lớp</dt><dd>31 học viên</dd></div><div><dt>Bài học</dt><dd>Bài 04 · Ơn Chúa Thánh Thần</dd></div></dl>
+                  <label className="session-note">Ghi chú buổi học<textarea placeholder="Nhập nội dung cần lưu ý..." /></label>
+                </aside>
+              </div>
+            </section>
+          )}
+
+          {(activeView === "sacraments" || activeView === "reports" || activeView === "settings") && (
+            <section className="module-view">
+              <div className="module-heading">
+                <div>
+                  <span className="eyebrow">GIÁO LÝ HUB</span>
+                  <h1>{activeView === "sacraments" ? "Theo dõi Bí tích" : activeView === "reports" ? "Báo cáo và thống kê" : "Cài đặt hệ thống"}</h1>
+                  <p>{activeView === "sacraments" ? "Lưu tiến trình và chứng nhận Bí tích của từng học viên." : activeView === "reports" ? "Tổng hợp số liệu học viên, chuyên cần và kết quả niên khóa." : "Thiết lập giáo xứ, niên khóa và quyền sử dụng."}</p>
+                </div>
+              </div>
+              <div className="feature-grid">
+                {featureSets[activeView].map((feature) => {
+                  const FeatureIcon = feature.icon;
+                  return <button className="feature-card" key={feature.title}><span><FeatureIcon size={22} /></span><div><strong>{feature.title}</strong><small>{feature.caption}</small></div><ChevronRight size={18} /></button>;
+                })}
+              </div>
+              <article className="panel roadmap-card"><span className="roadmap-icon"><Check size={22} /></span><div><h2>Giao diện phân hệ đã sẵn sàng</h2><p>Chức năng lưu thật sẽ được kích hoạt khi kết nối cơ sở dữ liệu ở giai đoạn tiếp theo.</p></div><button className="secondary-button" onClick={() => setActiveView("dashboard")}>Về tổng quan</button></article>
+            </section>
+          )}
+        </div>
+      </main>
+
+      {showAddStudent && (
+        <div className="modal-backdrop" role="presentation" onMouseDown={() => setShowAddStudent(false)}>
+          <section className="modal" role="dialog" aria-modal="true" aria-labelledby="add-student-title" onMouseDown={(event) => event.stopPropagation()}>
+            <div className="modal-heading">
+              <div><span className="modal-icon"><UserPlus size={21} /></span><div><h2 id="add-student-title">Thêm học viên mới</h2><p>Nhập thông tin cơ bản để tạo hồ sơ.</p></div></div>
+              <button className="icon-button" aria-label="Đóng" onClick={() => setShowAddStudent(false)}><X size={20} /></button>
+            </div>
+            <form onSubmit={handleAddStudent}>
+              <label>Họ và tên<input required placeholder="Ví dụ: Nguyễn Minh Anh" /></label>
+              <div className="form-row">
+                <label>Ngày sinh<input required type="date" /></label>
+                <label>Giới tính<select defaultValue=""><option value="" disabled>Chọn</option><option>Nam</option><option>Nữ</option></select></label>
+              </div>
+              <label>Lớp giáo lý<select required defaultValue=""><option value="" disabled>Chọn lớp</option><option>Khai Tâm 2</option><option>Rước Lễ 1B</option><option>Thêm Sức 1A</option><option>Thêm Sức 2A</option></select></label>
+              <label>Họ tên phụ huynh<input required placeholder="Người liên hệ chính" /></label>
+              <div className="modal-actions"><button type="button" className="secondary-button" onClick={() => setShowAddStudent(false)}>Hủy</button><button type="submit" className="primary-button"><Plus size={17} /> Thêm học viên</button></div>
+            </form>
+          </section>
+        </div>
+      )}
+
+      {toast && <div className="toast"><Check size={16} />{toast}</div>}
+    </div>
+  );
+}
