@@ -7,6 +7,7 @@ import {
   type FormEvent,
 } from "react";
 import { useRouter } from "next/navigation";
+import StudentExcelImport from "@/components/student-excel-import";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -304,6 +305,25 @@ const filteredStudents = useMemo(() => {
       .includes(query),
   );
 }, [searchQuery, students]);
+
+async function refreshDashboardAfterImport() {
+  const response = await fetch("/api/dashboard", {
+    method: "GET",
+    cache: "no-store",
+  });
+
+  const data = (await response.json()) as DashboardResponse;
+
+  if (!response.ok) {
+    throw new Error("Không thể tải lại danh sách học viên.");
+  }
+
+  if (!data.success) {
+    throw new Error(data.message);
+  }
+
+  setDashboardData(data);
+}
 
 if (isLoadingDashboard) {
   return (
@@ -605,7 +625,23 @@ if (!dashboardData) {
             <section className="module-view">
               <div className="module-heading">
                 <div><span className="eyebrow">QUẢN LÝ HỌC VIÊN</span><h1>Danh sách học viên</h1><p>Theo dõi hồ sơ, lớp học và thông tin liên hệ phụ huynh.</p></div>
-                <button className="primary-button module-primary" onClick={() => setShowAddStudent(true)}><UserPlus size={17} /> Thêm học viên</button>
+                <div className="student-heading-actions">
+                  <StudentExcelImport
+                    key={schoolYear}
+                    classes={dashboardData.classes}
+                    schoolYear={schoolYear}
+                    onImported={refreshDashboardAfterImport}
+                  />
+
+                  <button
+                    type="button"
+                    className="primary-button module-primary"
+                    onClick={() => setShowAddStudent(true)}
+                  >
+                    <UserPlus size={17} />
+                    Thêm học viên
+                  </button>
+                </div>
               </div>
               <div className="module-stat-row">
                 <div>
