@@ -1,11 +1,16 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-
+import {
+  AccessError,
+  resolveAccessScope,
+} from "@/lib/access-control";
 import {
   sheets,
   spreadsheetId,
 } from "@/lib/google-sheets";
-
+import {
+  LogOut,
+} from "lucide-react";
 import {
   SESSION_COOKIE_NAME,
   verifySessionToken,
@@ -95,106 +100,117 @@ export async function GET() {
       valueRanges[4]?.values ?? [];
 
     // 4. Kiểm tra tài khoản vẫn còn active
-    const accountRow = accountRows.find(
-      (row) => cell(row[0]) === accountId,
+    // 4. Xác định quyền của tài khoản
+    const access = resolveAccessScope(accountId, {
+      accounts: accountRows,
+      teachers: teacherRows,
+      assignments: teacherClassRows,
+    });
+
+    /*
+     * Tạo danh sách tên GLV phụ trách từng lớp.
+     * Dữ liệu này dùng khi admin xem toàn bộ lớp.
+     */
+    const teacherNameById = new Map(
+      teacherRows
+        .filter(
+          (row) =>
+            cell(row[3]).toLowerCase() === "active",
+        )
+        .map((row) => [
+          cell(row[0]),
+          cell(row[2]),
+        ]),
     );
 
-    if (!accountRow) {
-      return NextResponse.json(
-        {
-          success: false,
-          message: "Không tìm thấy tài khoản.",
-        },
-        { status: 403 },
+    const teacherNamesByClassId =
+      new Map<string, string[]>();
+
+    for (const assignment of teacherClassRows) {
+      if (
+        cell(assignment[4]).toLowerCase() !== "active"
+      ) {
+        continue;
+      }
+
+      const teacherId = cell(assignment[1]);
+      const classId = cell(assignment[2]);
+      const teacherName =
+        teacherNameById.get(teacherId);
+
+      if (!classId || !teacherName) {
+        continue;
+      }
+
+      const currentNames =
+        teacherNamesByClassId.get(classId) ?? [];
+
+      if (!currentNames.includes(teacherName)) {
+        currentNames.push(teacherName);
+      }
+
+      teacherNamesByClassId.set(
+        classId,
+        currentNames,
       );
     }
 
-    const accountRole = cell(accountRow[4]).toLowerCase();
-    const accountStatus = cell(accountRow[5]).toLowerCase();
+    /*
+     * Admin được lấy toàn bộ lớp active.
+     * Teacher chỉ lấy lớp được phân công.
+     */
+    const accessibleClasses = classRows
+      .filter((row) => {
+        const classId = cell(row[0]);
+        const isActive =
+          cell(row[7]).toLowerCase() === "active";
 
-    if (
-      accountRole !== "teacher" ||
-      accountStatus !== "active"
-    ) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Tài khoản không có quyền truy cập hoặc đã bị khóa.",
-        },
-        { status: 403 },
-      );
-    }
+        return (
+          isActive &&
+          (
+            access.isAdmin ||
+            access.assignedClassIds.has(classId)
+          )
+        );
+      })
+      .map((row) => {
+        const classId = cell(row[0]);
 
-    // 5. Tìm hồ sơ GLV qua account_id
-    const teacherRow = teacherRows.find(
-      (row) =>
-        cell(row[1]) === accountId &&
-        cell(row[3]).toLowerCase() === "active",
+        return {
+          id: classId,
+          classCode: cell(row[1]),
+          className: cell(row[2]),
+          gradeLevel: cell(row[3]),
+          schoolYear: cell(row[4]),
+          schedule: cell(row[5]),
+          room: cell(row[6]),
+          status: cell(row[7]),
+
+          assignmentRole: access.isAdmin
+            ? "admin"
+            : access.assignmentRoleByClass.get(
+                classId,
+              ) ?? "",
+
+          teacherNames:
+            teacherNamesByClassId.get(classId) ?? [],
+        };
+      });
+
+    const accessibleClassIds = new Set(
+      accessibleClasses.map(
+        (classItem) => classItem.id,
+      ),
     );
 
-    if (!teacherRow) {
-      return NextResponse.json(
-        {
-          success: false,
-          message:
-            "Tài khoản chưa được liên kết với hồ sơ GLV.",
-        },
-        { status: 403 },
-      );
-    }
-
-    const teacherId = cell(teacherRow[0]);
-
-    // 6. Tìm những lớp được phân công cho GLV
-    const activeAssignments = teacherClassRows.filter(
-      (row) =>
-        cell(row[1]) === teacherId &&
-        cell(row[4]).toLowerCase() === "active",
-    );
-
-    const assignedClassIds = new Set(
-      activeAssignments
-        .map((row) => cell(row[2]))
-        .filter(Boolean),
-    );
-
-    const assignmentRoleByClass = new Map(
-      activeAssignments.map((row) => [
-        cell(row[2]),
-        cell(row[3]),
-      ]),
-    );
-
-    // 7. Chỉ lấy lớp thuộc GLV đang đăng nhập
-    const assignedClasses = classRows
+    /*
+     * Chỉ trả về học viên thuộc những lớp
+     * mà tài khoản được quyền truy cập.
+     */
+    const accessibleStudents = studentRows
       .filter(
         (row) =>
-          assignedClassIds.has(cell(row[0])) &&
-          cell(row[7]).toLowerCase() === "active",
-      )
-      .map((row) => ({
-        id: cell(row[0]),
-        classCode: cell(row[1]),
-        className: cell(row[2]),
-        gradeLevel: cell(row[3]),
-        schoolYear: cell(row[4]),
-        schedule: cell(row[5]),
-        room: cell(row[6]),
-        status: cell(row[7]),
-        assignmentRole:
-          assignmentRoleByClass.get(cell(row[0])) ?? "",
-      }));
-
-    const validClassIds = new Set(
-      assignedClasses.map((classItem) => classItem.id),
-    );
-
-    // 8. Chỉ lấy học viên thuộc các lớp được phân công
-    const assignedStudents = studentRows
-      .filter(
-        (row) =>
-          validClassIds.has(cell(row[3])) &&
+          accessibleClassIds.has(cell(row[3])) &&
           cell(row[8]).toLowerCase() === "studying",
       )
       .map((row) => ({
@@ -212,37 +228,66 @@ export async function GET() {
     return NextResponse.json(
       {
         success: true,
+
+        /*
+         * Tạm giữ tên thuộc tính teacher để giao diện
+         * hiện tại không bị lỗi. Ta sẽ đổi thành viewer sau.
+         */
         teacher: {
-          id: teacherId,
-          accountId,
-          fullName: cell(teacherRow[2]),
-          phone: cell(accountRow[1]),
-          email: cell(accountRow[2]),
-          role: accountRole,
+          id:
+            Array.from(access.teacherIds)[0] ?? "",
+          accountId: access.accountId,
+          fullName: access.displayName,
+          phone: access.phone,
+          email: access.email,
+          role: access.role,
         },
+
         summary: {
-          classCount: assignedClasses.length,
-          studentCount: assignedStudents.length,
+          classCount: accessibleClasses.length,
+          studentCount: accessibleStudents.length,
         },
-        classes: assignedClasses,
-        students: assignedStudents,
+
+        classes: accessibleClasses,
+        students: accessibleStudents,
       },
       {
         headers: {
-          "Cache-Control": "no-store",
+          "Cache-Control": "private, no-store",
         },
       },
     );
   } catch (error) {
-    console.error("DASHBOARD API ERROR:", error);
-
+  if (error instanceof AccessError) {
     return NextResponse.json(
       {
         success: false,
-        message:
-          "Không thể tải dữ liệu dashboard. Vui lòng thử lại.",
+        message: error.message,
+        code: error.code,
       },
-      { status: 500 },
+      {
+        status: error.status,
+        headers: {
+          "Cache-Control": "private, no-store",
+        },
+      },
     );
   }
+
+  console.error("DASHBOARD API ERROR:", error);
+
+  return NextResponse.json(
+    {
+      success: false,
+      message:
+        "Không thể tải dữ liệu dashboard. Vui lòng thử lại.",
+    },
+    {
+      status: 500,
+      headers: {
+        "Cache-Control": "private, no-store",
+      },
+    },
+  );
+}
 }

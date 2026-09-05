@@ -111,3 +111,34 @@
   font-weight: 700;
   text-decoration: none;
 }
+.passwordContainer {
+  position: relative;
+  width: 100%;
+}
+
+.passwordContainer input {
+  width: 100%;
+  padding-right: 54px;
+}
+
+.passwordToggle {
+  position: absolute;
+  top: 50%;
+  right: 14px;
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  color: #64748b;
+  background: transparent;
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.passwordToggle:hover {
+  color: #991b1b;
+  background: #fef2f2;
+}

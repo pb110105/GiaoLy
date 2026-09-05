@@ -1,7 +1,7 @@
 import { compare } from "bcryptjs";
 import { NextResponse } from "next/server";
 import { z } from "zod";
-
+import { isAccountRole } from "@/lib/access-control";
 import {
   sheets,
   sheetName,
@@ -114,11 +114,11 @@ export async function POST(request: Request) {
       );
     }
 
-    if (account.role !== "teacher") {
+    if (!isAccountRole(account.role)) {
       return NextResponse.json(
         {
           success: false,
-          message: "Tài khoản không có quyền giáo viên.",
+          message: "Tài khoản không có vai trò hợp lệ.",
         },
         { status: 403 },
       );

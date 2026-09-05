@@ -41,6 +41,8 @@ import {
   UserPlus,
   UsersRound,
   X,
+  LogOut,
+  Armchair,
   type LucideIcon,
 } from "lucide-react";
 
@@ -117,6 +119,7 @@ const navigation: NavItem[] = [
   { id: "reports", label: "Báo cáo (Comming Soon)", icon: BarChart3 },
 ];
 
+
 const featureSets: Record<string, Array<{ title: string; caption: string; icon: LucideIcon }>> = {
   sacraments: [
     { title: "Rửa Tội", caption: "184 hồ sơ", icon: Cross },
@@ -155,8 +158,12 @@ export default function Home() {
     useState<DashboardSuccessResponse | null>(null);
 
   const [isLoadingDashboard, setIsLoadingDashboard] =
-    useState(true);
-
+  useState(true);
+  const [isLoggingOut, setIsLoggingOut] =
+  useState(false);
+  const [selectedSeatingClassId, setSelectedSeatingClassId,] 
+  = useState("");
+  
   const [dashboardError, setDashboardError] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
   const [sidebarOpen, setSidebarOpen] = useState(false);
@@ -182,7 +189,7 @@ export default function Home() {
       const data = (await response.json()) as DashboardResponse;
 
       if (!data.success) {
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           router.replace("/login");
           return;
         }
@@ -290,6 +297,20 @@ const classes = useMemo(() => {
 const studentCount = students.length;
 const classCount = classes.length;
 
+const seatingClassId = classes.some(
+  (item) => item.id === selectedSeatingClassId,
+)
+  ? selectedSeatingClassId
+  : classes[0]?.id ?? "";
+
+const seatingClass = classes.find(
+  (item) => item.id === seatingClassId,
+);
+
+const seatingStudents = yearData.students.filter(
+  (student) => student.classId === seatingClassId,
+);
+
 const filteredStudents = useMemo(() => {
   const query = searchQuery
     .trim()
@@ -375,6 +396,32 @@ if (!dashboardData) {
     setToast("Đã lưu học viên vào bản giao diện mẫu.");
     window.setTimeout(() => setToast(""), 2800);
   }
+
+  async function handleLogout() {
+  if (isLoggingOut) return;
+
+  setIsLoggingOut(true);
+
+  try {
+    const response = await fetch("/api/auth/logout", {
+      method: "POST",
+    });
+
+    if (!response.ok) {
+      throw new Error("Không thể đăng xuất.");
+    }
+
+    router.replace("/login");
+    router.refresh();
+  } catch {
+    setIsLoggingOut(false);
+    setToast("Không thể đăng xuất. Vui lòng thử lại.");
+
+    window.setTimeout(() => {
+      setToast("");
+    }, 2500);
+  }
+}
 
   return (
     <div className="app-shell">
@@ -483,6 +530,20 @@ if (!dashboardData) {
           })}
           <span className="nav-heading nav-heading-spaced">HỆ THỐNG</span>
           <button className="nav-item" onClick={() => selectView("settings")}><Settings size={19} strokeWidth={1.9} /><span>Cài đặt</span></button>
+          <button
+            type="button"
+            className="nav-item logout-button"
+            disabled={isLoggingOut}
+            onClick={() => void handleLogout()}
+          >
+            <LogOut size={19} strokeWidth={1.9} />
+
+            <span>
+              {isLoggingOut
+                ? "Đang đăng xuất..."
+                : "Đăng xuất"}
+            </span>
+          </button>
         </nav>
 
         <div className="sidebar-support">
@@ -713,13 +774,124 @@ if (!dashboardData) {
                     <div className="class-meta"><span><UsersRound size={15} /> {item.students} học viên</span><span><CalendarDays size={15} /> {item.schedule}</span><span><CircleUserRound size={15} /> {item.room}</span></div>
                     <div className="progress-copy"><span>Tiến độ chương trình</span><strong>{item.progress}%</strong></div>
                     <div className="progress-track"><span style={{ width: `${item.progress}%` }} /></div>
-                    <button className="class-open" onClick={() => setActiveView("attendance")}>Xem chi tiết lớp <ChevronRight size={15} /></button>
+                    <div className="class-card-actions">
+                      <button
+                        type="button"
+                        className="class-open"
+                        onClick={() => {
+                          setSelectedSeatingClassId(item.id);
+                          setActiveView("seating");
+                        }}
+                      >
+                        <Armchair size={16} />
+                        Sơ đồ chỗ ngồi
+                        <ChevronRight size={15} />
+                      </button>
+
+                      <button
+                        type="button"
+                        className="class-open secondary"
+                        onClick={() => setActiveView("attendance")}
+                      >
+                        Điểm danh
+                        <ChevronRight size={15} />
+                      </button>
+                    </div>
                   </article>
                 ))}
               </div>
             </section>
           )}
 
+          {activeView === "seating" && (
+            <section className="module-view">
+              <div className="module-heading">
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setActiveView("classes")}
+                >
+                  Quay lại lớp giáo lý
+                </button>
+
+                <label className="seating-class-select">
+                  <span>Chọn lớp</span>
+
+                  <select
+                    value={seatingClassId}
+                    onChange={(event) =>
+                      setSelectedSeatingClassId(
+                        event.target.value,
+                      )
+                    }
+                  >
+                    {classes.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {!seatingClass ? (
+                <article className="panel seating-empty">
+                  <Armchair size={34} />
+
+                  <h2>Chưa có lớp trong niên khóa này</h2>
+
+                  <p>
+                    Hãy tạo hoặc phân công lớp trước khi lập
+                    sơ đồ chỗ ngồi.
+                  </p>
+                </article>
+              ) : (
+                <article className="panel seating-plan">
+                  <div className="seating-plan-heading">
+                    <div>
+                      <span>LỚP ĐANG XEM</span>
+                      <h2>{seatingClass.name}</h2>
+                    </div>
+
+                    <strong>
+                      {seatingStudents.length} học viên
+                    </strong>
+                  </div>
+
+                  <div className="seating-board">
+                    BẢNG LỚP
+                  </div>
+
+                  {seatingStudents.length === 0 ? (
+                    <div className="seating-empty">
+                      <Armchair size={32} />
+                      <p>Lớp này chưa có học viên.</p>
+                    </div>
+                  ) : (
+                    <div className="seating-grid">
+                      {seatingStudents.map((student, index) => (
+                        <div
+                          className="seat-card"
+                          key={student.id}
+                        >
+                          <span className="seat-number">
+                            {String(index + 1).padStart(2, "0")}
+                          </span>
+
+                          <Armchair size={20} />
+
+                          <div>
+                            <strong>{student.fullName}</strong>
+                            <small>{student.studentCode}</small>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </article>
+              )}
+            </section>
+          )}
           {activeView === "attendance" && (
             <section className="module-view">
               <div className="module-heading">
