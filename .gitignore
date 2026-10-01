@@ -29,3 +29,4 @@ pnpm-debug.log*
 
 # TypeScript generated file
 next-env.d.ts
+*.tsbuildinfo
