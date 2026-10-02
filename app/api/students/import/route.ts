@@ -227,8 +227,18 @@ export async function POST(request: Request) {
     }
 
     // 5. Đọc và kiểm tra nội dung Excel.
-    const rows =
-      await parseStudentWorkbook(buffer);
+    const parsedRows = await parseStudentWorkbook(buffer);
+
+    const rows = parsedRows.map((row) => ({
+      ...row,
+      studentCode:
+        row.studentCode ||
+        `AUTO-${createHash("sha256")
+          .update(`${classId}|${schoolYear}|${fingerprint}|${row.rowNumber}`)
+          .digest("hex")
+          .slice(0, 24)
+          .toUpperCase()}`,
+    }));
 
     const input: ImportInput = {
       action,

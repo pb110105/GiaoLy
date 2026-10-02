@@ -123,26 +123,76 @@ function normalizeBirthDate(value: unknown, today: string) {
   return iso;
 }
 
-// Kiểm tra nội dung từng dòng trong Excel.
 export function validateImportRows(
   table: unknown[][],
   today = new Intl.DateTimeFormat("en-CA", {
     timeZone: "Asia/Ho_Chi_Minh",
   }).format(new Date()),
 ): ImportRow[] {
-  const header = (table[0] ?? []).map((value) =>
-    cell(value).toLowerCase(),
-  );
+  function normalizeHeader(value: unknown) {
+    return cell(value)
+      .normalize("NFD")
+      .replace(/[\u0300-\u036f]/g, "")
+      .replace(/đ/g, "d")
+      .replace(/Đ/g, "D")
+      .toLowerCase()
+      .replace(/[^a-z0-9]/g, "");
+  }
 
-  if (
-    header.length !== IMPORT_HEADERS.length ||
-    new Set(header).size !== header.length ||
-    IMPORT_HEADERS.some((name) => !header.includes(name))
-  ) {
+  const aliases = {
+    saint: ["tenth anh".replace(/ /g, ""), "saintname"],
+    family: ["ho", "hovadem"],
+    given: ["ten"],
+    code: ["studentcode", "mahocvien", "mahv"],
+    birth: ["birthdate", "ngaysinh"],
+    gender: ["gender", "gioitinh"],
+    guardian: ["guardianname", "tenphuhuynh", "hotenphuhuynh"],
+    phone: ["guardianphone", "dienthoai", "sdt", "sodienthoai"],
+  };
+
+  // Tìm hàng tiêu đề, bỏ qua tiêu đề lớn và tên GLV.
+  const headerIndex = table.findIndex((row) => {
+    const names = row.map(normalizeHeader);
+
+    return (
+      aliases.saint.some((name) => names.includes(name)) &&
+      aliases.family.some((name) => names.includes(name)) &&
+      aliases.given.some((name) => names.includes(name))
+    );
+  });
+
+  if (headerIndex < 0) {
     throw new ImportError(
-      `Hàng 1 phải có đúng 6 cột: ${IMPORT_HEADERS.join(", ")}.`,
+      "Không tìm thấy hàng có các cột Tên Thánh, Họ và Tên.",
     );
   }
+
+  const header = table[headerIndex].map(normalizeHeader);
+
+  function findColumn(names: string[]) {
+    const indexes = header
+      .map((name, index) => names.includes(name) ? index : -1)
+      .filter((index) => index >= 0);
+
+    if (indexes.length > 1) {
+      throw new ImportError(
+        "File có tên cột bị trùng. Hãy kiểm tra hàng tiêu đề.",
+      );
+    }
+
+    return indexes[0] ?? -1;
+  }
+
+  const columns = {
+    saint: findColumn(aliases.saint),
+    family: findColumn(aliases.family),
+    given: findColumn(aliases.given),
+    code: findColumn(aliases.code),
+    birth: findColumn(aliases.birth),
+    gender: findColumn(aliases.gender),
+    guardian: findColumn(aliases.guardian),
+    phone: findColumn(aliases.phone),
+  };
 
   const genderNames: Record<string, string> = {
     nam: "male",
@@ -157,13 +207,33 @@ export function validateImportRows(
 
   const rows: ImportRow[] = [];
 
-  for (let index = 1; index < table.length; index++) {
+  for (let index = headerIndex + 1; index < table.length; index++) {
     const values = table[index];
 
-    // Bỏ qua dòng trống.
-    if (values.every((value) => value == null || cell(value) === "")) {
-      continue;
-    }
+    const get = (column: number): unknown =>
+      column < 0 ? "" : values[column];
+
+    const text = (column: number) =>
+      cell(get(column)).replace(/\s+/g, " ");
+
+    const saintName = text(columns.saint);
+    const familyName = text(columns.family);
+    const givenName = text(columns.given);
+    const studentCode = codeKey(get(columns.code));
+
+    // Bỏ qua hàng trống hoặc chỉ chứa số thứ tự/ô điểm danh.
+    const hasStudentData = [
+      columns.saint,
+      columns.family,
+      columns.given,
+      columns.code,
+      columns.birth,
+      columns.gender,
+      columns.guardian,
+      columns.phone,
+    ].some((column) => cell(get(column)) !== "");
+
+    if (!hasStudentData) continue;
 
     if (rows.length >= MAX_IMPORT_ROWS) {
       throw new ImportError(
@@ -171,76 +241,78 @@ export function validateImportRows(
       );
     }
 
-    const get = (name: (typeof IMPORT_HEADERS)[number]) =>
-      values[header.indexOf(name)];
-
     const issues: string[] = [];
-    const studentCode = codeKey(get("student_code"));
-    const fullName = cell(get("full_name")).replace(/\s+/g, " ");
-    const guardianName = cell(get("guardian_name")).replace(/\s+/g, " ");
-    const gender = genderNames[cell(get("gender")).toLowerCase()] ?? "";
-    const birthDate = normalizeBirthDate(get("birth_date"), today);
-    const phoneValue = get("guardian_phone");
-    const guardianPhone = cell(phoneValue).replace(/[\s().-]/g, "");
+
+    if (!saintName || saintName.length > 80) {
+      issues.push("Tên Thánh bắt buộc, tối đa 80 ký tự.");
+    }
+
+    if (!familyName || familyName.length > 80) {
+      issues.push("Họ và tên đệm bắt buộc, tối đa 80 ký tự.");
+    }
+
+    if (!givenName || givenName.length > 40) {
+      issues.push("Tên bắt buộc, tối đa 40 ký tự.");
+    }
+
+    const fullName = [saintName, familyName, givenName]
+      .filter(Boolean)
+      .join(" ");
+
+    if (fullName.length > 120) {
+      issues.push("Tên đầy đủ tối đa 120 ký tự.");
+    }
 
     if (
-      typeof get("student_code") !== "string" ||
+      studentCode &&
       !/^[A-Z0-9][A-Z0-9._/-]{0,39}$/.test(studentCode)
     ) {
+      issues.push("Mã học viên không hợp lệ, tối đa 40 ký tự.");
+    }
+
+    const birthValue = get(columns.birth);
+    const birthDate = normalizeBirthDate(birthValue, today);
+
+    if (cell(birthValue) && !birthDate) {
       issues.push(
-        "Mã học viên phải là Text, từ 1–40 ký tự A–Z, 0–9 hoặc . _ / -.",
+        "Ngày sinh không hợp lệ. Dùng ngày Excel, yyyy-mm-dd hoặc dd/mm/yyyy.",
       );
     }
 
-    if (
-      typeof get("full_name") !== "string" ||
-      !fullName ||
-      fullName.length > 120
-    ) {
-      issues.push("Họ tên học viên bắt buộc, tối đa 120 ký tự.");
-    }
+    const genderValue = text(columns.gender);
+    const gender = genderNames[genderValue.toLowerCase()] ?? "";
 
-    if (!birthDate) {
-      issues.push(
-        "Ngày sinh không hợp lệ. Dùng ngày Excel, yyyy-mm-dd hoặc dd/mm/yyyy; không nhập ngày tương lai.",
-      );
-    }
-
-    if (!gender) {
+    if (genderValue && !gender) {
       issues.push("Giới tính phải là Nam, Nữ hoặc Khác.");
     }
 
-    if (
-      typeof get("guardian_name") !== "string" ||
-      !guardianName ||
-      guardianName.length > 120
-    ) {
-      issues.push("Họ tên phụ huynh bắt buộc, tối đa 120 ký tự.");
+    const guardianName = text(columns.guardian);
+
+    if (guardianName.length > 120) {
+      issues.push("Tên phụ huynh tối đa 120 ký tự.");
     }
 
-    if (
-      typeof phoneValue !== "string" ||
-      !/^(?:0\d{9,10}|\+[1-9]\d{8,14})$/.test(guardianPhone)
-    ) {
-      issues.push(
-        "Điện thoại phải là Text và giữ số 0 đầu, hoặc dùng +mã quốc gia.",
-      );
-    }
+    const phoneValue = get(columns.phone);
+    const guardianPhone = cell(phoneValue).replace(/[\s().-]/g, "");
 
     if (
-      values.slice(header.length).some(
-        (value) => value != null && cell(value),
+      guardianPhone &&
+      (
+        typeof phoneValue !== "string" ||
+        !/^(?:0\d{9,10}|\+[1-9]\d{8,14})$/.test(guardianPhone)
       )
     ) {
-      issues.push("Có dữ liệu ngoài 6 cột của file mẫu.");
+      issues.push(
+        "Điện thoại phải là Text, giữ số 0 đầu hoặc dùng +mã quốc gia.",
+      );
     }
 
     rows.push({
       rowNumber: index + 1,
       studentCode,
       fullName,
-      birthDate: birthDate || cell(get("birth_date")).slice(0, 32),
-      gender: gender || cell(get("gender")),
+      birthDate: birthDate || cell(birthValue).slice(0, 32),
+      gender: gender || genderValue,
       guardianName,
       guardianPhone,
       issues,
@@ -248,15 +320,14 @@ export function validateImportRows(
   }
 
   if (!rows.length) {
-    throw new ImportError(
-      "File chưa có học viên. Hãy nhập dữ liệu từ hàng 2.",
-    );
+    throw new ImportError("File chưa có dữ liệu học viên.");
   }
 
-  // Đếm mã để phát hiện trùng ngay trong file.
   const counts = new Map<string, number>();
 
   for (const row of rows) {
+    if (!row.studentCode) continue;
+
     counts.set(
       row.studentCode,
       (counts.get(row.studentCode) ?? 0) + 1,
@@ -267,9 +338,12 @@ export function validateImportRows(
     ...row,
     issues: [
       ...row.issues,
-      ...((counts.get(row.studentCode) ?? 0) > 1
-        ? ["Mã học viên bị lặp trong file."]
-        : []),
+      ...(
+        row.studentCode &&
+        (counts.get(row.studentCode) ?? 0) > 1
+          ? ["Mã học viên bị lặp trong file."]
+          : []
+      ),
     ],
   }));
 }

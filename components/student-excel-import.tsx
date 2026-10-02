@@ -418,11 +418,10 @@ function ImportExcelModal({
               </label>
 
               <p className="excel-upload-note">
-                File phải có 6 cột:
-                student_code, full_name,
-                birth_date, gender,
-                guardian_name và
-                guardian_phone.
+                Bắt buộc các cột: Tên Thánh, Họ, Tên.
+                Mã học viên, ngày sinh, giới tính và thông tin
+                phụ huynh có thể để trống hoặc không có cột.
+                Nếu thiếu mã học viên, hệ thống sẽ tự tạo.
               </p>
 
               {error && (
