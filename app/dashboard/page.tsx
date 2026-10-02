@@ -79,6 +79,7 @@ type DashboardSuccessResponse = {
     room: string;
     status: string;
     assignmentRole: string;
+    teacherNames: string[];
   }>;
   students: Array<{
     id: string;
@@ -284,7 +285,7 @@ const classes = useMemo(() => {
   return yearData.classes.map((item, index) => ({
     id: item.id,
     name: item.className,
-    teacher: `GLV. ${teacherName}`,
+    teacher: item.teacherNames?.length ? item.teacherNames.join(", ") : "Chưa phân công GLV",
     students: studentCounts.get(item.id) ?? 0,
     schedule: item.schedule,
     room: item.room,
@@ -296,6 +297,30 @@ const classes = useMemo(() => {
 
 const studentCount = students.length;
 const classCount = classes.length;
+const now = new Date();
+
+const currentDateLabel = new Intl.DateTimeFormat("vi-VN", {
+  timeZone: "Asia/Ho_Chi_Minh",
+  weekday: "long",
+  day: "numeric",
+  month: "long",
+  year: "numeric",
+}).format(now);
+
+const currentHour = Number(
+  new Intl.DateTimeFormat("en-GB", {
+    timeZone: "Asia/Ho_Chi_Minh",
+    hour: "2-digit",
+    hourCycle: "h23",
+  }).format(now),
+);
+
+const greeting =
+  currentHour < 12
+    ? "Chào buổi sáng"
+    : currentHour < 18
+      ? "Chào buổi chiều"
+      : "Chào buổi tối";
 
 const seatingClassId = classes.some(
   (item) => item.id === selectedSeatingClassId,
@@ -580,8 +605,8 @@ if (!dashboardData) {
           <div className={activeView === "dashboard" ? "view-screen" : "view-screen hidden-view"}>
           <section className="page-heading">
             <div>
-              <span className="eyebrow">THỨ BẢY, 15 THÁNG 8</span>
-              <h1>Chào buổi chiều, {teacherName}!</h1>
+              <span className="eyebrow">{currentDateLabel}</span>
+              <h1>{greeting}, {teacherName}!</h1>
               <p>Đây là tình hình sinh hoạt giáo lý của giáo xứ hôm nay.</p>
             </div>
             <button className="secondary-button"><Download size={17} />Xuất báo cáo</button>
@@ -602,55 +627,84 @@ if (!dashboardData) {
             </article>
             <article className="stat-card">
               <div className="stat-icon mint"><UserCheck size={21} /></div>
-              <div className="stat-copy"><span>Điểm danh tuần này</span><strong>92%</strong></div>
-              <span className="trend positive"><TrendingUp size={13} /> 4,2%</span>
+              <div className="stat-copy"><span>Chuyên cần</span><strong>-</strong></div>
+              <span className="trend neutral">Chưa tổng hợp CCAMS</span>
             </article>
             <article className="stat-card warning-card">
               <div className="stat-icon amber"><AlertCircle size={21} /></div>
-              <div className="stat-copy"><span>Hồ sơ cần bổ sung</span><strong>07</strong></div>
-              <button className="mini-link">Xem ngay <ChevronRight size={14} /></button>
+              <div className="stat-copy"><span>Hồ sơ cần bổ sung</span><strong>—</strong>
+              <span className="trend neutral">Chưa có dữ liệu hồ sơ</span></div>
             </article>
           </section>
 
           <section className="dashboard-grid">
             <article className="panel attendance-panel">
               <div className="panel-heading">
-                <div><span className="panel-kicker">CHUYÊN CẦN</span><h2>Tỷ lệ tham dự 6 tuần gần đây</h2></div>
-                <button className="period-button">6 tuần <ChevronDown size={15} /></button>
+                <div>
+                  <span className="panel-kicker">CHUYÊN CẦN</span>
+                  <h2>Thống kê điểm danh</h2>
+                </div>
               </div>
-              <div className="chart-summary"><strong>86,8%</strong><span><TrendingUp size={14} /> Cao hơn 3,1% so với kỳ trước</span></div>
-              <div className="bar-chart" aria-label="Biểu đồ tỷ lệ tham dự 6 tuần">
-                {weeklyAttendance.map((value, index) => (
-                  <div className="bar-column" key={value + index}>
-                    <div className="bar-track">
-                      <div className={`bar-fill ${index === weeklyAttendance.length - 1 ? "latest" : ""}`} style={{ height: `${value}%` }}>
-                        {index === weeklyAttendance.length - 1 && <span>{value}%</span>}
-                      </div>
-                    </div>
-                    <small>Tuần {index + 1}</small>
-                  </div>
-                ))}
+
+              <div className="empty-search">
+                Chưa tổng hợp dữ liệu CCAMS cho niên khóa {schoolYear}.
               </div>
             </article>
 
             <article className="panel schedule-panel">
               <div className="panel-heading">
-                <div><span className="panel-kicker">HÔM NAY</span><h2>Lịch sinh hoạt</h2></div>
-                <button className="circle-link" aria-label="Xem lịch"><ArrowUpRight size={17} /></button>
+                <div>
+                  <span className="panel-kicker">
+                    NIÊN KHÓA {schoolYear}
+                  </span>
+                  <h2>Lịch học các lớp</h2>
+                </div>
               </div>
+
               <div className="schedule-list">
-                <div className="schedule-item"><time>14:00</time><span className="schedule-line coral-line" /><div><strong>Rước Lễ 1B</strong><span><CircleUserRound size={14} /> GLV. Minh Thư · Phòng 03</span></div><em>28 em</em></div>
-                <div className="schedule-item"><time>15:30</time><span className="schedule-line blue-line" /><div><strong>Thêm Sức 2A</strong><span><CircleUserRound size={14} /> GLV. Hoàng Nam · Hội trường</span></div><em>31 em</em></div>
-                <div className="schedule-item"><time>17:00</time><span className="schedule-line mint-line" /><div><strong>Ca đoàn thiếu nhi</strong><span><Clock3 size={14} /> Nhà thờ chính</span></div><em>45 em</em></div>
+                {classes.length === 0 ? (
+                  <div className="empty-search">
+                    Chưa có lớp trong niên khóa này.
+                  </div>
+                ) : (
+                  classes.map((item) => (
+                    <div className="schedule-item" key={item.id}>
+                      <time>{item.schedule || "Chưa có lịch"}</time>
+
+                      <span className="schedule-line coral-line" />
+
+                      <div>
+                        <strong>{item.name}</strong>
+
+                        <span>
+                          <CircleUserRound size={14} />
+                          {item.teacher}
+                          {" · "}
+                          {item.room || "Chưa có phòng"}
+                        </span>
+                      </div>
+
+                      <em>{item.students} em</em>
+                    </div>
+                  ))
+                )}
               </div>
-              <button className="full-link">Xem lịch đầy đủ <ChevronRight size={15} /></button>
+
+              <button
+                type="button"
+                className="full-link"
+                onClick={() => selectView("classes")}
+              >
+                Xem tất cả lớp
+                <ChevronRight size={15} />
+              </button>
             </article>
           </section>
 
           <section className="bottom-grid">
             <article className="panel students-panel">
               <div className="panel-heading table-panel-heading">
-                <div><span className="panel-kicker">HỌC VIÊN</span><h2>Hồ sơ cập nhật gần đây</h2></div>
+                <div><span className="panel-kicker">HỌC VIÊN</span><h2>Học viên trong niên khoá</h2></div>
                 <button className="text-link" onClick={() => selectView("students")}>Xem tất cả <ChevronRight size={15} /></button>
               </div>
               <div className="student-table-wrap">
@@ -672,11 +726,15 @@ if (!dashboardData) {
             </article>
 
             <article className="panel attention-panel">
-              <div className="panel-heading"><div><span className="panel-kicker">CẦN CHÚ Ý</span><h2>Việc cần xử lý</h2></div><span className="task-count">4</span></div>
-              <div className="task-list">
-                <button className="task-item"><span className="task-icon amber"><AlertCircle size={17} /></span><span><strong>7 hồ sơ còn thiếu</strong><small>Giấy khai sinh hoặc chứng nhận Bí tích</small></span><ChevronRight size={17} /></button>
-                <button className="task-item"><span className="task-icon coral"><CalendarDays size={17} /></span><span><strong>3 em vắng hai tuần</strong><small>Cần liên hệ phụ huynh để xác nhận</small></span><ChevronRight size={17} /></button>
-                <button className="task-item"><span className="task-icon blue"><ClipboardCheck size={17} /></span><span><strong>Điểm danh chưa hoàn tất</strong><small>Lớp Khai Tâm 2 · Tuần 6</small></span><ChevronRight size={17} /></button>
+              <div className="panel-heading">
+                <div>
+                  <span className="panel-kicker">CẦN CHÚ Ý</span>
+                  <h2>Việc cần xử lý</h2>
+                </div>
+              </div>
+
+              <div className="empty-search">
+                Chưa có dữ liệu để tổng hợp việc cần xử lý.
               </div>
             </article>
           </section>
