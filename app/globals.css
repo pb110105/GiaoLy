@@ -1473,3 +1473,92 @@ button, a { -webkit-tap-highlight-color: transparent; }
   gap: 12px;
   flex-wrap: wrap;
 }
+.ccams-filters {
+  padding: 24px;
+}
+
+.ccams-filters fieldset {
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.ccams-filter-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.ccams-filter-grid label {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ccams-filter-grid label > span {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ccams-filter-grid input,
+.ccams-filter-grid select {
+  width: 100%;
+  min-width: 0;
+  min-height: 46px;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  background: var(--paper);
+  color: var(--navy-950);
+  font: inherit;
+}
+
+.ccams-filter-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  margin-top: 22px;
+}
+
+.ccams-filters button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.ccams-results {
+  margin-top: 24px;
+}
+
+.ccams-results .panel-heading {
+  padding: 24px;
+}
+
+.ccams-error {
+  padding: 16px;
+  border: 1px solid #efb5b5;
+  border-radius: 10px;
+  background: #fff2f2;
+  color: #a31919;
+}
+
+@media (max-width: 900px) {
+  .ccams-filter-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 600px) {
+  .ccams-filter-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .ccams-filters {
+    padding: 18px;
+  }
+
+  .ccams-filter-actions {
+    flex-wrap: wrap;
+  }
+}
