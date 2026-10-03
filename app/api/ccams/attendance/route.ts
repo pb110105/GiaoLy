@@ -75,6 +75,18 @@ const attendanceTypeLabels: Record<
   4: "Xưng tội",
   5: "Thi đua/Khác",
 };
+function isValidDate(value: string) {
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+    return false;
+  }
+
+  const parsed = new Date(`${value}T00:00:00.000Z`);
+
+  return (
+    !Number.isNaN(parsed.getTime()) &&
+    parsed.toISOString().slice(0, 10) === value
+  );
+}
 export async function GET(request: NextRequest) {
   try {
     // Kiểm tra người dùng đã đăng nhập web của mình
@@ -123,6 +135,13 @@ export async function GET(request: NextRequest) {
     const date = clean(
       request.nextUrl.searchParams.get("date"),
     );
+    const toDate =
+      clean(request.nextUrl.searchParams.get("to")) || date;
+
+    const pageValue =
+      clean(request.nextUrl.searchParams.get("page")) || "1";
+
+    const page = Number(pageValue);
 
     const attendanceType = clean(
       request.nextUrl.searchParams.get("loai"),
@@ -140,11 +159,44 @@ export async function GET(request: NextRequest) {
       request.nextUrl.searchParams.get("search"),
     );
 
-    if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+    if (!isValidDate(date) || !isValidDate(toDate)) {
       return NextResponse.json(
         {
           success: false,
-          message: "Ngày điểm danh không hợp lệ.",
+          message: "Ngày bắt đầu hoặc ngày kết thúc không hợp lệ.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (toDate < date) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (
+      !/^[1-9]\d*$/.test(pageValue) ||
+      !Number.isSafeInteger(page)
+    ) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Số trang không hợp lệ.",
+        },
+        { status: 400 },
+      );
+    }
+
+    if (search.length > 120) {
+      return NextResponse.json(
+        {
+          success: false,
+          message: "Từ khóa tìm kiếm tối đa 120 ký tự.",
         },
         { status: 400 },
       );
@@ -203,6 +255,7 @@ export async function GET(request: NextRequest) {
     );
 
     ccamsUrl.searchParams.set("date", date);
+    ccamsUrl.searchParams.set("to", toDate);
     ccamsUrl.searchParams.set(
       "loai",
       attendanceType,
@@ -221,7 +274,7 @@ export async function GET(request: NextRequest) {
     if (search) {
       ccamsUrl.searchParams.set("search", search);
     }
-    ccamsUrl.searchParams.set("page", "1");
+    ccamsUrl.searchParams.set("page", String(page));
 
     const ccamsResponse = await fetch(ccamsUrl, {
       method: "GET",
@@ -329,21 +382,19 @@ export async function GET(request: NextRequest) {
         success: true,
         filters: {
           date,
+          to: toDate,
           attendanceType,
           schoolYearId,
           externalClassId,
           search,
         },
         summary: {
-  total:
-    sourceData.rows?.total ??
-    records.length,
-  page:
-    sourceData.rows?.page ?? 1,
-  lastPage:
-    sourceData.rows?.last_page ?? 1,
-},
-records,
+          total: sourceData.rows?.total ?? records.length,
+          page: sourceData.rows?.page ?? page,
+          perPage: sourceData.rows?.per_page ?? records.length,
+          lastPage: sourceData.rows?.last_page ?? 1,
+        },
+        records,
       },
       {
         headers: {
