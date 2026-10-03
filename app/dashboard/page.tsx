@@ -304,9 +304,7 @@ const classes = useMemo(() => {
     teacher: item.teacherNames?.length ? item.teacherNames.join(", ") : "Chưa phân công GLV",
     students: studentCounts.get(item.id) ?? 0,
     schedule: item.schedule,
-    room: item.room,
     schoolYear: item.schoolYear,
-    progress: 0,
     tone: tones[index % tones.length],
   }));
 }, [yearData, teacherName]);
@@ -744,8 +742,6 @@ if (!dashboardData) {
                         <span>
                           <CircleUserRound size={14} />
                           {item.teacher}
-                          {" · "}
-                          {item.room || "Chưa có phòng"}
                         </span>
                       </div>
 
@@ -894,9 +890,7 @@ if (!dashboardData) {
                     <div className={`class-accent ${item.tone}`} />
                     <div className="class-card-head"><span className={`class-symbol ${item.tone}`}><BookOpen size={20} /></span><button className="table-action" aria-label={`Tùy chọn lớp ${item.name}`}><MoreHorizontal size={18} /></button></div>
                     <h2>{item.name}</h2><p>{item.teacher}</p>
-                    <div className="class-meta"><span><UsersRound size={15} /> {item.students} học viên</span><span><CalendarDays size={15} /> {item.schedule}</span><span><CircleUserRound size={15} /> {item.room}</span></div>
-                    <div className="progress-copy"><span>Tiến độ chương trình</span><strong>{item.progress}%</strong></div>
-                    <div className="progress-track"><span style={{ width: `${item.progress}%` }} /></div>
+                    <div className="class-meta"><span><UsersRound size={15} /> {item.students} học viên</span><span><CalendarDays size={15} /> {item.schedule}</span></div>
                     <div className="class-card-actions">
                       <button
                         type="button"
@@ -1228,13 +1222,6 @@ if (!dashboardData) {
                       <div>
                         <dt>Giáo lý viên</dt>
                         <dd>{attendanceClass.teacher}</dd>
-                      </div>
-
-                      <div>
-                        <dt>Phòng học</dt>
-                        <dd>
-                          {attendanceClass.room || "Chưa có phòng"}
-                        </dd>
                       </div>
 
                       <div>
