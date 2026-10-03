@@ -245,7 +245,6 @@ export default function CcamsAttendance() {
                 <input
                   type="date"
                   required
-                  min={fromDate}
                   value={toDate}
                   onChange={(event) => setToDate(event.target.value)}
                 />
