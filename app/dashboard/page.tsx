@@ -153,6 +153,22 @@ function StudentAvatar({ student }: { student: Student }) {
 }
 
 export default function Home() {
+  const [selectedAttendanceClassId, setSelectedAttendanceClassId] =
+  useState("");
+
+  const [attendanceDate, setAttendanceDate] = useState(() => {
+    const parts = new Intl.DateTimeFormat("en-GB", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).formatToParts(new Date());
+
+    const get = (type: string) =>
+      parts.find((part) => part.type === type)?.value ?? "";
+
+    return `${get("year")}-${get("month")}-${get("day")}`;
+  });
   const router = useRouter();
   const [selectedSchoolYear, setSelectedSchoolYear] = useState("");
   const [dashboardData, setDashboardData] =
@@ -371,6 +387,55 @@ async function refreshDashboardAfterImport() {
   setDashboardData(data);
 }
 
+const attendanceClassId = classes.some(
+  (item) => item.id === selectedAttendanceClassId,
+)
+  ? selectedAttendanceClassId
+  : classes[0]?.id ?? "";
+
+const attendanceClass = classes.find(
+  (item) => item.id === attendanceClassId,
+);
+
+const attendanceStudents = yearData.students.filter(
+  (student) => student.classId === attendanceClassId,
+);
+
+// Mỗi học viên có trạng thái riêng theo lớp và ngày.
+function attendanceKey(studentId: string) {
+  return `${attendanceClassId}|${attendanceDate}|${studentId}`;
+}
+
+const attendanceCounts = {
+  present: 0,
+  excused: 0,
+  absent: 0,
+  unmarked: 0,
+};
+
+for (const student of attendanceStudents) {
+  const status = attendance[attendanceKey(student.id)];
+
+  if (
+    status === "present" ||
+    status === "excused" ||
+    status === "absent"
+  ) {
+    attendanceCounts[status]++;
+  } else {
+    attendanceCounts.unmarked++;
+  }
+}
+
+const attendanceDateLabel = attendanceDate
+  ? new Intl.DateTimeFormat("vi-VN", {
+      timeZone: "Asia/Ho_Chi_Minh",
+      weekday: "long",
+      day: "2-digit",
+      month: "2-digit",
+      year: "numeric",
+    }).format(new Date(`${attendanceDate}T00:00:00+07:00`))
+  : "Chưa chọn ngày";
 if (isLoadingDashboard) {
   return (
     <main className="dashboard-state">
@@ -953,37 +1018,238 @@ if (!dashboardData) {
           {activeView === "attendance" && (
             <section className="module-view">
               <div className="module-heading">
-                <div><span className="eyebrow">CHUYÊN CẦN</span><h1>Điểm danh lớp học</h1><p>Ghi nhận tình trạng tham dự của học viên theo từng buổi.</p></div>
-                <button className="primary-button module-primary" onClick={() => { setToast("Đã lưu điểm danh buổi học."); window.setTimeout(() => setToast(""), 2500); }}><Save size={17} /> Lưu điểm danh</button>
+                <div>
+                  <span className="eyebrow">CHUYÊN CẦN</span>
+                  <h1>Điểm danh lớp học</h1>
+                  <p>
+                    Chọn lớp và ngày để ghi nhận tình trạng tham dự.
+                    Các lựa chọn hiện chỉ được giữ trong trang đang mở.
+                  </p>
+                </div>
+
+                <button
+                  type="button"
+                  className="primary-button module-primary"
+                  disabled
+                  title="Chưa kết nối chức năng lưu điểm danh."
+                >
+                  <Save size={17} />
+                  Chưa kết nối lưu
+                </button>
               </div>
-              <div className="attendance-layout">
-                <article className="panel attendance-sheet">
-                  <div className="attendance-controls">
-                    <label><span>Lớp giáo lý</span><select defaultValue="Thêm Sức 2A"><option>Thêm Sức 2A</option><option>Rước Lễ 1B</option><option>Khai Tâm 2</option></select></label>
-                    <label><span>Ngày học</span><input type="date" defaultValue="2026-08-15" /></label>
-                    <div><span>Buổi học</span><strong>Tuần 6 · Bài 04</strong></div>
-                  </div>
-                  <div className="attendance-summary"><span><i className="present-dot" /> Có mặt <strong>{Object.values(attendance).filter((value) => value === "present").length}</strong></span><span><i className="excused-dot" /> Có phép <strong>{Object.values(attendance).filter((value) => value === "excused").length}</strong></span><span><i className="absent-dot" /> Vắng <strong>{Object.values(attendance).filter((value) => value === "absent").length}</strong></span></div>
-                  <div className="attendance-list">
-                    {students.slice(0, 6).map((student, index) => (
-                      <div className="attendance-row" key={student.name}>
-                        <span className="row-number">{String(index + 1).padStart(2, "0")}</span><StudentAvatar student={student} /><div className="attendance-name"><strong>{student.name}</strong><span>GL{String(2601 + index).padStart(4, "0")}</span></div>
-                        <div className="attendance-options" role="group" aria-label={`Điểm danh ${student.name}`}>
-                          <button className={attendance[student.name] === "present" ? "selected present" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "present" })}><Check size={14} /> Có mặt</button>
-                          <button className={attendance[student.name] === "excused" ? "selected excused" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "excused" })}>Có phép</button>
-                          <button className={attendance[student.name] === "absent" ? "selected absent" : ""} onClick={() => setAttendance({ ...attendance, [student.name]: "absent" })}>Vắng</button>
-                        </div>
-                      </div>
-                    ))}
+
+              {!attendanceClass ? (
+                <article className="panel">
+                  <div className="empty-search">
+                    Chưa có lớp trong niên khóa đang chọn.
                   </div>
                 </article>
-                <aside className="panel session-card">
-                  <span className="panel-kicker">THÔNG TIN BUỔI HỌC</span><h2>Thêm Sức 2A</h2>
-                  <div className="session-date"><CalendarDays size={19} /><div><strong>Thứ Bảy, 15/08/2026</strong><span>15:30 – 16:45</span></div></div>
-                  <dl><div><dt>Giáo lý viên</dt><dd>Hoàng Nam</dd></div><div><dt>Phòng học</dt><dd>Hội trường</dd></div><div><dt>Sĩ số lớp</dt><dd>31 học viên</dd></div><div><dt>Bài học</dt><dd>Bài 04 · Ơn Chúa Thánh Thần</dd></div></dl>
-                  <label className="session-note">Ghi chú buổi học<textarea placeholder="Nhập nội dung cần lưu ý..." /></label>
-                </aside>
-              </div>
+              ) : (
+                <div className="attendance-layout">
+                  <article className="panel attendance-sheet">
+                    <div className="attendance-controls">
+                      <label>
+                        <span>Lớp giáo lý</span>
+
+                        <select
+                          value={attendanceClassId}
+                          onChange={(event) =>
+                            setSelectedAttendanceClassId(event.target.value)
+                          }
+                        >
+                          {classes.map((item) => (
+                            <option key={item.id} value={item.id}>
+                              {item.name}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+
+                      <label>
+                        <span>Ngày học</span>
+
+                        <input
+                          type="date"
+                          value={attendanceDate}
+                          onChange={(event) =>
+                            setAttendanceDate(event.target.value)
+                          }
+                        />
+                      </label>
+
+                      <div>
+                        <span>Niên khóa</span>
+                        <strong>{schoolYear}</strong>
+                      </div>
+                    </div>
+
+                    <div className="attendance-summary">
+                      <span>
+                        <i className="present-dot" />
+                        Có mặt <strong>{attendanceCounts.present}</strong>
+                      </span>
+
+                      <span>
+                        <i className="excused-dot" />
+                        Có phép <strong>{attendanceCounts.excused}</strong>
+                      </span>
+
+                      <span>
+                        <i className="absent-dot" />
+                        Vắng <strong>{attendanceCounts.absent}</strong>
+                      </span>
+
+                      <span>
+                        Chưa điểm danh
+                        {" "}
+                        <strong>{attendanceCounts.unmarked}</strong>
+                      </span>
+                    </div>
+
+                    <div className="attendance-list">
+                      {attendanceStudents.length === 0 ? (
+                        <div className="empty-search">
+                          Lớp này chưa có học viên.
+                        </div>
+                      ) : (
+                        attendanceStudents.map((student, index) => {
+                          const key = attendanceKey(student.id);
+                          const status = attendance[key];
+
+                          return (
+                            <div
+                              className="attendance-row"
+                              key={student.id}
+                            >
+                              <span className="row-number">
+                                {String(index + 1).padStart(2, "0")}
+                              </span>
+
+                              <span className="student-avatar coral">
+                                {createInitials(student.fullName)}
+                              </span>
+
+                              <div className="attendance-name">
+                                <strong>{student.fullName}</strong>
+                                <span>
+                                  {student.studentCode || "Chưa có mã"}
+                                </span>
+                              </div>
+
+                              <div
+                                className="attendance-options"
+                                role="group"
+                                aria-label={`Điểm danh ${student.fullName}`}
+                              >
+                                <button
+                                  type="button"
+                                  disabled={!attendanceDate}
+                                  aria-pressed={status === "present"}
+                                  className={
+                                    status === "present"
+                                      ? "selected present"
+                                      : ""
+                                  }
+                                  onClick={() =>
+                                    setAttendance((current) => ({
+                                      ...current,
+                                      [key]: "present",
+                                    }))
+                                  }
+                                >
+                                  <Check size={14} />
+                                  Có mặt
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={!attendanceDate}
+                                  aria-pressed={status === "excused"}
+                                  className={
+                                    status === "excused"
+                                      ? "selected excused"
+                                      : ""
+                                  }
+                                  onClick={() =>
+                                    setAttendance((current) => ({
+                                      ...current,
+                                      [key]: "excused",
+                                    }))
+                                  }
+                                >
+                                  Có phép
+                                </button>
+
+                                <button
+                                  type="button"
+                                  disabled={!attendanceDate}
+                                  aria-pressed={status === "absent"}
+                                  className={
+                                    status === "absent"
+                                      ? "selected absent"
+                                      : ""
+                                  }
+                                  onClick={() =>
+                                    setAttendance((current) => ({
+                                      ...current,
+                                      [key]: "absent",
+                                    }))
+                                  }
+                                >
+                                  Vắng
+                                </button>
+                              </div>
+                            </div>
+                          );
+                        })
+                      )}
+                    </div>
+                  </article>
+
+                  <aside className="panel session-card">
+                    <span className="panel-kicker">
+                      THÔNG TIN LỚP HỌC
+                    </span>
+
+                    <h2>{attendanceClass.name}</h2>
+
+                    <div className="session-date">
+                      <CalendarDays size={19} />
+
+                      <div>
+                        <strong>{attendanceDateLabel}</strong>
+                        <span>
+                          {attendanceClass.schedule || "Chưa có lịch học"}
+                        </span>
+                      </div>
+                    </div>
+
+                    <dl>
+                      <div>
+                        <dt>Giáo lý viên</dt>
+                        <dd>{attendanceClass.teacher}</dd>
+                      </div>
+
+                      <div>
+                        <dt>Phòng học</dt>
+                        <dd>
+                          {attendanceClass.room || "Chưa có phòng"}
+                        </dd>
+                      </div>
+
+                      <div>
+                        <dt>Sĩ số lớp</dt>
+                        <dd>{attendanceStudents.length} học viên</dd>
+                      </div>
+
+                      <div>
+                        <dt>Niên khóa</dt>
+                        <dd>{schoolYear}</dd>
+                      </div>
+                    </dl>
+                  </aside>
+                </div>
+              )}
             </section>
           )}
 
