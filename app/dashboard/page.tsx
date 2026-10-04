@@ -155,6 +155,8 @@ function StudentAvatar({ student }: { student: Student }) {
 export default function Home() {
   const [selectedAttendanceClassId, setSelectedAttendanceClassId] =
   useState("");
+  const [selectedDiligenceClassId, setSelectedDiligenceClassId] =
+  useState("");
 
   const [attendanceDate, setAttendanceDate] = useState(() => {
     const parts = new Intl.DateTimeFormat("en-GB", {
@@ -904,7 +906,18 @@ if (!dashboardData) {
                         Sơ đồ chỗ ngồi
                         <ChevronRight size={15} />
                       </button>
-
+                      <button
+                        type="button"
+                        className="class-open"
+                        onClick={() => {
+                          setSelectedDiligenceClassId(item.id);
+                          setActiveView("diligence");
+                        }}
+                      >
+                        <UserCheck size={16} />
+                        Chuyên cần
+                        <ChevronRight size={15} />
+                      </button>
                       <button
                         type="button"
                         className="class-open secondary"
@@ -1007,6 +1020,52 @@ if (!dashboardData) {
                   )}
                 </article>
               )}
+            </section>
+          )}
+          {activeView === "diligence" && (
+            <section className="module-view">
+              <div className="module-heading">
+                <div>
+                  <span className="eyebrow">THEO DÕI CHUYÊN CẦN</span>
+
+                  <h1>
+                    {classes.find(
+                      (item) => item.id === selectedDiligenceClassId,
+                    )?.name ?? "Chuyên cần"}
+                  </h1>
+
+                  <p>Điểm lễ và số buổi vắng giáo lý của từng học viên.</p>
+                </div>
+
+                <button
+                  type="button"
+                  className="secondary-button"
+                  onClick={() => setActiveView("classes")}
+                >
+                  Quay lại lớp giáo lý
+                </button>
+              </div>
+
+              <article className="panel">
+                <div className="panel-heading">
+                  <div>
+                    <h2>Quy tắc chuyên cần</h2>
+                    <p>
+                      Điểm lễ: cộng tổng số ngày tham dự lễ vào thứ Năm,
+                      thứ Sáu, thứ Bảy và Chủ nhật; yêu cầu 2 điểm mỗi tuần.
+                    </p>
+
+                    <p>
+                      Điểm lễ cộng thêm được bù cho các buổi lễ còn thiếu.
+                    </p>
+
+                    <p>
+                      Giáo lý: tính cả vắng có phép và không phép;
+                      vắng từ 6 buổi là vượt giới hạn.
+                    </p>
+                  </div>
+                </div>
+              </article>
             </section>
           )}
           {activeView === "attendance" && (
