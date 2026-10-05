@@ -1,6 +1,7 @@
 "use client";
 import CcamsAttendance from "@/components/ccams-attendance";
 import ClassDiligence from "@/components/class-diligence";
+import CcamsStudentMatch from "@/components/ccams-student-match";
 import {
   useEffect,
   useMemo,
@@ -85,6 +86,7 @@ type DashboardSuccessResponse = {
   students: Array<{
     id: string;
     studentCode: string;
+    ccamsStudentCode: string;
     fullName: string;
     classId: string;
     birthDate: string;
@@ -1024,25 +1026,40 @@ if (!dashboardData) {
             </section>
           )}
           {activeView === "diligence" && (
-            <ClassDiligence
-              key={`${selectedDiligenceClassId}-${schoolYear}`}
-              className={
-                classes.find(
-                  (item) => item.id === selectedDiligenceClassId,
-                )?.name ?? ""
-              }
-              schoolYear={schoolYear}
-              students={yearData.students
-                .filter(
+            <div>
+              <CcamsStudentMatch
+                key={`match-${selectedDiligenceClassId}-${schoolYear}`}
+                className={
+                  classes.find(
+                    (item) => item.id === selectedDiligenceClassId,
+                  )?.name ?? ""
+                }
+                students={yearData.students.filter(
                   (student) =>
                     student.classId === selectedDiligenceClassId,
-                )
-                .map((student) => ({
-                  studentCode: student.studentCode,
-                  fullName: student.fullName,
-                }))}
-              onBack={() => setActiveView("classes")}
-            />
+                )}
+              />
+
+              <ClassDiligence
+                key={`${selectedDiligenceClassId}-${schoolYear}`}
+                className={
+                  classes.find(
+                    (item) => item.id === selectedDiligenceClassId,
+                  )?.name ?? ""
+                }
+                schoolYear={schoolYear}
+                students={yearData.students
+                  .filter(
+                    (student) =>
+                      student.classId === selectedDiligenceClassId,
+                  )
+                  .map((student) => ({
+                    studentCode: student.ccamsStudentCode || "",
+                    fullName: student.fullName,
+                  }))}
+                onBack={() => setActiveView("classes")}
+              />
+            </div>
           )}
           {activeView === "attendance" && (
             <CcamsAttendance />

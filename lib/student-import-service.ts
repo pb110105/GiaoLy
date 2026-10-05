@@ -56,6 +56,7 @@ export function importRecords(
     "studying",
     now,
     now,
+    "",
   ]);
 }
 

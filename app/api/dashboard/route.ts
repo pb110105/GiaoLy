@@ -77,7 +77,7 @@ export async function GET() {
           "TEACHER!A2:F",
           "CLASS!A2:J",
           "TEACHER_CLASS!A2:G",
-          "STUDENT!A2:K",
+          "STUDENT!A2:L",
         ],
       });
 
@@ -216,6 +216,7 @@ export async function GET() {
       .map((row) => ({
         id: cell(row[0]),
         studentCode: cell(row[1]),
+        ccamsStudentCode: cell(row[11]),
         fullName: cell(row[2]),
         classId: cell(row[3]),
         birthDate: cell(row[4]),
