@@ -1,5 +1,6 @@
 "use client";
 import CcamsAttendance from "@/components/ccams-attendance";
+import ClassDiligence from "@/components/class-diligence";
 import {
   useEffect,
   useMemo,
@@ -1023,50 +1024,25 @@ if (!dashboardData) {
             </section>
           )}
           {activeView === "diligence" && (
-            <section className="module-view">
-              <div className="module-heading">
-                <div>
-                  <span className="eyebrow">THEO DÕI CHUYÊN CẦN</span>
-
-                  <h1>
-                    {classes.find(
-                      (item) => item.id === selectedDiligenceClassId,
-                    )?.name ?? "Chuyên cần"}
-                  </h1>
-
-                  <p>Điểm lễ và số buổi vắng giáo lý của từng học viên.</p>
-                </div>
-
-                <button
-                  type="button"
-                  className="secondary-button"
-                  onClick={() => setActiveView("classes")}
-                >
-                  Quay lại lớp giáo lý
-                </button>
-              </div>
-
-              <article className="panel">
-                <div className="panel-heading">
-                  <div>
-                    <h2>Quy tắc chuyên cần</h2>
-                    <p>
-                      Điểm lễ: cộng tổng số ngày tham dự lễ vào thứ Năm,
-                      thứ Sáu, thứ Bảy và Chủ nhật; yêu cầu 2 điểm mỗi tuần.
-                    </p>
-
-                    <p>
-                      Điểm lễ cộng thêm được bù cho các buổi lễ còn thiếu.
-                    </p>
-
-                    <p>
-                      Giáo lý: tính cả vắng có phép và không phép;
-                      vắng từ 6 buổi là vượt giới hạn.
-                    </p>
-                  </div>
-                </div>
-              </article>
-            </section>
+            <ClassDiligence
+              key={`${selectedDiligenceClassId}-${schoolYear}`}
+              className={
+                classes.find(
+                  (item) => item.id === selectedDiligenceClassId,
+                )?.name ?? ""
+              }
+              schoolYear={schoolYear}
+              students={yearData.students
+                .filter(
+                  (student) =>
+                    student.classId === selectedDiligenceClassId,
+                )
+                .map((student) => ({
+                  studentCode: student.studentCode,
+                  fullName: student.fullName,
+                }))}
+              onBack={() => setActiveView("classes")}
+            />
           )}
           {activeView === "attendance" && (
             <CcamsAttendance />
