@@ -546,8 +546,16 @@ if (!dashboardData) {
           )}
         </button>
         <div className="brand-row">
-          <LogoMark />
-          <div><strong>Giáo Lý Hub</strong><span>Giáo xứ Biên Hoà</span></div>
+          <button
+            type="button"
+            className="brand-home"
+            onClick={() => selectView("dashboard")}
+            aria-label="Về trang tổng quan"
+            title="Về trang tổng quan"
+          >
+            <LogoMark />
+            <div><strong>Giáo Lý Hub</strong><span>Giáo xứ Biên Hoà</span></div>
+          </button>
           <button className="icon-button close-sidebar" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
         </div>
 
