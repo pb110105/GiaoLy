@@ -554,7 +554,10 @@ if (!dashboardData) {
             title="Về trang tổng quan"
           >
             <LogoMark />
-            <div><strong>Giáo Lý Hub</strong><span>Giáo xứ Biên Hoà</span></div>
+            <div>
+              <strong>Giáo Lý Hub</strong>
+              <span>Giáo xứ Biên Hoà</span>
+            </div>
           </button>
           <button className="icon-button close-sidebar" aria-label="Đóng menu" onClick={() => setSidebarOpen(false)}><X size={20} /></button>
         </div>
