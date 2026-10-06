@@ -47,7 +47,16 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 .brand-row { display: flex; align-items: center; gap: 12px; padding: 0 7px; }
 .logo-mark { width: 41px; height: 41px; display: grid; place-items: center; flex: 0 0 41px; color: var(--navy-950); background: #f6dfaa; border-radius: 13px 13px 13px 5px; }
-.brand-row > div { min-width: 0; display: flex; flex-direction: column; }
+.brand-home > div {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.brand-home strong,
+.brand-home span {
+  white-space: nowrap;
+}
 .brand-row strong { font-family: var(--font-lora), serif; font-size: 17px; line-height: 1.3; letter-spacing: -.2px; }
 .brand-row span { color: #9eb3ae; font-size: 10.5px; margin-top: 3px; }
 .close-sidebar { display: none !important; margin-left: auto; color: #d8e4df !important; }
@@ -450,7 +459,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
     padding-inline: 0;
   }
 
-  .sidebar.collapsed .brand-row > div {
+  .sidebar.collapsed .brand-home > div {
     display: none;
   }
 
