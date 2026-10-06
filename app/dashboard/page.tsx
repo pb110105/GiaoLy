@@ -118,7 +118,7 @@ const navigation: NavItem[] = [
   { id: "dashboard", label: "Tổng quan (Comming Soon)", icon: LayoutDashboard },
   { id: "students", label: "Học viên (Comming Soon)", icon: UsersRound },
   { id: "classes", label: "Lớp giáo lý", icon: BookOpen },
-  { id: "attendance", label: "Điểm danh (Comming Soon)", icon: ClipboardCheck },
+  { id: "attendance", label: "Điểm danh", icon: ClipboardCheck },
   { id: "sacraments", label: "Bí tích (Comming Soon)", icon: Cross },
   { id: "reports", label: "Báo cáo (Comming Soon)", icon: BarChart3 },
 ];
