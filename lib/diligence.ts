@@ -38,27 +38,13 @@ export function calculateDiligence(
       "Ngày kết thúc phải bằng hoặc sau ngày bắt đầu.",
     );
   }
-
-  // Mỗi thứ Năm và Chủ nhật trong khoảng chọn:
-  // yêu cầu 1 điểm lễ.
-  let requiredMassPoints = 0;
-
-  for (
-    const day = new Date(start.getTime());
-    day <= end;
-    day.setUTCDate(day.getUTCDate() + 1)
-  ) {
-    const weekday = day.getUTCDay();
-
-    if (weekday === 4 || weekday === 0) {
-      requiredMassPoints++;
-    }
-  }
+  const requiredMassPoints = 70;
 
   const statistics = new Map<
     string,
     {
       massDates: Set<string>;
+      otherAttendanceDates: Set<string>;
       catechismAbsentDates: Set<string>;
     }
   >();
@@ -82,10 +68,19 @@ export function calculateDiligence(
     if (!student) {
       student = {
         massDates: new Set(),
+        otherAttendanceDates: new Set(),
         catechismAbsentDates: new Set(),
       };
 
       statistics.set(studentCode, student);
+    }
+    // Đi lễ thứ Hai, Ba, Tư: tính vào điểm danh khác.
+    if (
+      record.attendanceType === 1 &&
+      record.status === "present" &&
+      [1, 2, 3].includes(weekday)
+    ) {
+      student.otherAttendanceDates.add(date);
     }
 
     // Thánh lễ: thứ Năm, Sáu, Bảy và Chủ nhật.
@@ -126,6 +121,7 @@ export function calculateDiligence(
       studentCode,
       fullName: student.fullName,
       massPoints,
+      otherAttendancePoints: statistic?.otherAttendanceDates.size ?? 0,
       requiredMassPoints,
       missingMassPoints,
       extraMassPoints: Math.max(
