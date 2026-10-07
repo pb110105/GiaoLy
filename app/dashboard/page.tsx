@@ -993,6 +993,8 @@ if (!dashboardData) {
               ) : (
                 <SeatingPlan
                   key={`${schoolYear}-${seatingClass.id}`}
+                  classId={seatingClass.id}
+                  schoolYear={schoolYear}
                   className={seatingClass.name}
                   students={seatingStudents}
                 />

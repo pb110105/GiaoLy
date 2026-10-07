@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, type DragEvent } from "react";
+import { useEffect, useState, type DragEvent } from "react";
 import { Armchair, Plus, X } from "lucide-react";
 
 type Student = {
@@ -10,11 +10,16 @@ type Student = {
 };
 
 type Props = {
+  classId: string;
+  schoolYear: string;
   className: string;
   students: Student[];
 };
 
+
 export default function SeatingPlan({
+  classId,
+  schoolYear,
   className,
   students,
 }: Props) {
@@ -23,6 +28,145 @@ export default function SeatingPlan({
   );
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+  const [loadError, setLoadError] = useState("");
+  const [message, setMessage] = useState("");
+  const [revision, setRevision] = useState(0);
+  const [savedSnapshot, setSavedSnapshot] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  const dirty =
+    !loading &&
+    !loadError &&
+    JSON.stringify(seats) !== savedSnapshot;
+
+  useEffect(() => {
+    const controller = new AbortController();
+
+    async function loadPlan() {
+      setLoading(true);
+      setLoadError("");
+      setMessage("");
+      setSelectedId(null);
+
+      try {
+        const params = new URLSearchParams({
+          classId,
+          schoolYear,
+        });
+
+        const response = await fetch(
+          `/api/seating-plan?${params}`,
+          {
+            cache: "no-store",
+            signal: controller.signal,
+          },
+        );
+
+        const data = await response.json();
+
+        if (!response.ok || !data.success) {
+          throw new Error(data.message || "Không tải được sơ đồ.");
+        }
+
+        const loadedSeats: (string | null)[][] =
+          data.seats ??
+          Array.from({ length: 3 }, () => Array(4).fill(null));
+
+        if (controller.signal.aborted) return;
+
+        setSeats(loadedSeats);
+        setRevision(data.revision);
+        setSavedSnapshot(JSON.stringify(loadedSeats));
+      } catch (error) {
+        if (controller.signal.aborted) return;
+
+        setLoadError(
+          error instanceof Error
+            ? error.message
+            : "Không tải được sơ đồ.",
+        );
+      } finally {
+        if (!controller.signal.aborted) setLoading(false);
+      }
+    }
+
+    void loadPlan();
+
+    return () => controller.abort();
+  }, [classId, schoolYear, reloadKey]);
+
+  useEffect(() => {
+    if (!dirty) return;
+
+    function warnBeforeLeave(event: BeforeUnloadEvent) {
+      event.preventDefault();
+      event.returnValue = "";
+    }
+
+    window.addEventListener("beforeunload", warnBeforeLeave);
+
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeLeave);
+    };
+  }, [dirty]);
+
+  async function savePlan() {
+    if (loading || saving || loadError || !dirty) return;
+
+    setSaving(true);
+    setMessage("");
+
+    const snapshot = JSON.stringify(seats);
+
+    try {
+      const response = await fetch("/api/seating-plan", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "x-giaoly-seating": "1",
+        },
+        body: JSON.stringify({
+          classId,
+          schoolYear,
+          seats: JSON.parse(snapshot),
+          revision,
+        }),
+      });
+
+      const data = await response.json();
+
+      if (!response.ok || !data.success) {
+        throw new Error(data.message || "Không lưu được sơ đồ.");
+      }
+
+      setRevision(data.revision);
+      setSavedSnapshot(snapshot);
+      setMessage("Đã lưu sơ đồ thành công.");
+    } catch (error) {
+      setMessage(
+        error instanceof Error
+          ? error.message
+          : "Không lưu được sơ đồ. Hãy thử lại.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function reloadPlan() {
+    if (
+      dirty &&
+      !window.confirm(
+        "Tải lại sẽ bỏ các thay đổi chưa lưu. Tiếp tục?",
+      )
+    ) {
+      return;
+    }
+
+    setReloadKey((current) => current + 1);
+  }
 
   const studentMap = new Map(
     students.map((student) => [student.id, student]),
@@ -41,6 +185,7 @@ export default function SeatingPlan({
   );
 
   function addRow() {
+    if (loading || saving || loadError || seats.length >= 30) return;
     setSeats((current) => [
       ...current,
       Array(current[0].length).fill(null),
@@ -48,6 +193,7 @@ export default function SeatingPlan({
   }
 
   function addColumn() {
+    if (loading || saving || loadError || seats[0].length >= 20) return;
     setSeats((current) =>
       current.map((row) => [...row, null]),
     );
@@ -58,26 +204,23 @@ export default function SeatingPlan({
     targetRow: number,
     targetColumn: number,
   ) {
+    if (loading || saving || loadError) return;
     if (!studentMap.has(studentId)) return;
 
     setSeats((current) => {
       const next = current.map((row) => [...row]);
-      let source: [number, number] | null = null;
+            const sourceRow = current.findIndex((row) =>
+        row.includes(studentId),
+      );
 
-      current.forEach((row, rowIndex) => {
-        row.forEach((id, columnIndex) => {
-          if (id === studentId) {
-            source = [rowIndex, columnIndex];
-          }
-        });
-      });
+      const sourceColumn =
+        sourceRow >= 0
+          ? current[sourceRow].indexOf(studentId)
+          : -1;
 
       const displacedId = next[targetRow][targetColumn];
 
-      // Chuyển giữa hai ghế: đổi chỗ nếu ghế đích có người.
-      // Kéo từ danh sách: người ở ghế đích trở về danh sách.
-      if (source) {
-        const [sourceRow, sourceColumn] = source;
+      if (sourceRow >= 0 && sourceColumn >= 0) {
         next[sourceRow][sourceColumn] = displacedId;
       }
 
@@ -89,6 +232,7 @@ export default function SeatingPlan({
   }
 
   function removeStudent(studentId: string) {
+    if (loading || saving || loadError) return;
     setSeats((current) =>
       current.map((row) =>
         row.map((id) => (id === studentId ? null : id)),
@@ -129,14 +273,40 @@ export default function SeatingPlan({
           Đã xếp {assignedIds.size}/{students.length} học viên
         </strong>
       </div>
+            <div className="sp-save-bar">
+        <button
+          type="button"
+          className="primary-button"
+          onClick={savePlan}
+          disabled={loading || saving || Boolean(loadError) || !dirty}
+        >
+          {saving ? "Đang lưu..." : "Lưu sơ đồ"}
+        </button>
 
+        <button
+          type="button"
+          className="secondary-button"
+          onClick={reloadPlan}
+          disabled={loading || saving}
+        >
+          Tải lại sơ đồ
+        </button>
+
+        <span role="status">
+          {loading
+            ? "Đang tải sơ đồ..."
+            : loadError || message ||
+              (dirty ? "Có thay đổi chưa lưu." : "Sơ đồ đã đồng bộ.")}
+        </span>
+      </div>  
       <p className="sp-help" aria-live="polite">
         {selectedStudent
           ? `Đã chọn ${selectedStudent.fullName}. Bấm vào ghế để xếp chỗ.`
           : "Kéo học viên vào ghế, hoặc chọn học viên rồi bấm vào ghế."}
       </p>
 
-      <div className="sp-layout">
+      <fieldset className="sp-editor" disabled={loading || saving || Boolean(loadError)}>
+        <div className="sp-layout">
         <div className="sp-room">
           <div className="seating-board">BẢNG LỚP</div>
 
@@ -317,6 +487,7 @@ export default function SeatingPlan({
           </div>
         </aside>
       </div>
+      </fieldset>
     </article>
   );
 }
