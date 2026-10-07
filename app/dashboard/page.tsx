@@ -1,5 +1,6 @@
 "use client";
 import CcamsAttendance from "@/components/ccams-attendance";
+import SeatingPlan from "@/components/seating-plan";
 import ClassDiligence from "@/components/class-diligence";
 import CcamsStudentMatch from "@/components/ccams-student-match";
 import {
@@ -990,49 +991,11 @@ if (!dashboardData) {
                   </p>
                 </article>
               ) : (
-                <article className="panel seating-plan">
-                  <div className="seating-plan-heading">
-                    <div>
-                      <span>LỚP ĐANG XEM</span>
-                      <h2>{seatingClass.name}</h2>
-                    </div>
-
-                    <strong>
-                      {seatingStudents.length} học viên
-                    </strong>
-                  </div>
-
-                  <div className="seating-board">
-                    BẢNG LỚP
-                  </div>
-
-                  {seatingStudents.length === 0 ? (
-                    <div className="seating-empty">
-                      <Armchair size={32} />
-                      <p>Lớp này chưa có học viên.</p>
-                    </div>
-                  ) : (
-                    <div className="seating-grid">
-                      {seatingStudents.map((student, index) => (
-                        <div
-                          className="seat-card"
-                          key={student.id}
-                        >
-                          <span className="seat-number">
-                            {String(index + 1).padStart(2, "0")}
-                          </span>
-
-                          <Armchair size={20} />
-
-                          <div>
-                            <strong>{student.fullName}</strong>
-                            <small>{student.studentCode}</small>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-                </article>
+                <SeatingPlan
+                  key={`${schoolYear}-${seatingClass.id}`}
+                  className={seatingClass.name}
+                  students={seatingStudents}
+                />
               )}
             </section>
           )}

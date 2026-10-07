@@ -1594,3 +1594,272 @@ button, a { -webkit-tap-highlight-color: transparent; }
   outline-offset: 6px;
   border-radius: 8px;
 }
+/* Sơ đồ chỗ ngồi có thể chỉnh sửa */
+
+.sp-panel {
+  padding: 24px;
+}
+
+.sp-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.sp-heading span {
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sp-heading h2 {
+  margin: 6px 0 0;
+  color: var(--navy-950);
+  font-size: 20px;
+}
+
+.sp-heading > strong {
+  font-size: 13px;
+}
+
+.sp-help {
+  margin: 16px 0 22px;
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.6;
+}
+
+.sp-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 260px;
+  gap: 24px;
+  align-items: start;
+}
+
+.sp-room {
+  min-width: 0;
+}
+
+.sp-room .seating-board {
+  width: 100%;
+  max-width: 540px;
+  margin: 0 auto 24px;
+}
+
+.sp-scroll {
+  overflow-x: auto;
+  padding: 4px 4px 12px;
+}
+
+.sp-grid-area {
+  display: flex;
+  align-items: stretch;
+  gap: 12px;
+  width: max-content;
+  min-width: 100%;
+}
+
+.sp-grid {
+  display: grid;
+  gap: 12px;
+}
+
+.sp-seat {
+  position: relative;
+  min-height: 120px;
+  border: 1px dashed #d6c6bd;
+  border-radius: 12px;
+  background: #faf7f3;
+}
+
+.sp-seat.is-filled {
+  border-style: solid;
+  background: #fff;
+}
+
+.sp-seat-main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  width: 100%;
+  min-height: 120px;
+  padding: 28px 10px 12px;
+  border: 0;
+  border-radius: 12px;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  cursor: pointer;
+}
+
+.sp-seat.is-filled .sp-seat-main {
+  color: var(--navy-950);
+  cursor: grab;
+}
+
+.sp-seat-main strong {
+  font-size: 12px;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+
+.sp-coordinate {
+  position: absolute;
+  top: 9px;
+  left: 10px;
+  color: var(--muted);
+  font-size: 10px;
+}
+
+.sp-remove {
+  position: absolute;
+  top: 5px;
+  right: 5px;
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 0;
+  border-radius: 6px;
+  background: #fff1ec;
+  color: #990000;
+  cursor: pointer;
+}
+
+.sp-add-column,
+.sp-add-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  border: 1px dashed #cda995;
+  border-radius: 10px;
+  background: #fff8f1;
+  color: #990000;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sp-add-column {
+  flex: 0 0 70px;
+  flex-direction: column;
+}
+
+.sp-add-row {
+  width: 100%;
+  min-width: 200px;
+  min-height: 42px;
+  margin-top: 12px;
+}
+
+.sp-roster {
+  min-width: 0;
+  padding: 16px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  background: #faf7f3;
+}
+
+.sp-roster h3 {
+  margin: 0;
+  font-size: 15px;
+}
+
+.sp-roster > p {
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.6;
+}
+
+.sp-roster input {
+  width: 100%;
+  min-width: 0;
+  padding: 10px 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+  font: inherit;
+  font-size: 12px;
+}
+
+.sp-student-list {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 560px;
+  overflow-y: auto;
+  margin-top: 12px;
+  padding: 3px;
+}
+
+.sp-student {
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: #fff;
+  color: var(--navy-950);
+  font: inherit;
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: left;
+  cursor: grab;
+  overflow-wrap: anywhere;
+}
+
+.sp-seat.is-selected,
+.sp-student.is-selected {
+  outline: 2px solid #990000;
+  outline-offset: 1px;
+}
+
+.sp-seat-main:focus-visible,
+.sp-student:focus-visible,
+.sp-add-row:focus-visible,
+.sp-add-column:focus-visible,
+.sp-remove:focus-visible,
+.sp-cancel:focus-visible {
+  outline: 2px solid #990000;
+  outline-offset: 2px;
+}
+
+.sp-cancel {
+  margin-top: 10px;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #990000;
+  font: inherit;
+  font-size: 12px;
+  cursor: pointer;
+}
+
+.sp-no-students {
+  color: var(--muted);
+  font-size: 12px;
+}
+
+@media (max-width: 1100px) {
+  .sp-layout {
+    grid-template-columns: minmax(0, 1fr) 220px;
+    gap: 16px;
+  }
+}
+
+@media (max-width: 700px) {
+  .sp-panel {
+    padding: 16px;
+  }
+
+  .sp-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .sp-student-list {
+    max-height: 300px;
+  }
+}
