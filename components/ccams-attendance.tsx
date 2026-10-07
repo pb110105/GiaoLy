@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState, type FormEvent } from "react";
-
+import { Check } from "lucide-react";
 type Meta = {
   filters: {
     years: Array<{
@@ -408,7 +408,24 @@ export default function CcamsAttendance() {
                       </td>
                       <td>{record.className}</td>
                       <td>{record.attendanceTypeLabel}</td>
-                      <td>{statusLabels[record.status]}</td>
+                      <td>
+                      {record.status === "present" ? (
+                        <span
+                          title="Có mặt"
+                          role="img"
+                          aria-label="Có mặt"
+                          style={{
+                            display: "inline-flex",
+                            color: "#16a34a",
+                            verticalAlign: "middle",
+                          }}
+                        >
+                          <Check size={20} strokeWidth={3} aria-hidden="true" />
+                        </span>
+                      ) : (
+                        statusLabels[record.status]
+                      )}
+                    </td>
                       <td>{record.markedBy || "—"}</td>
                       <td>{record.note || "—"}</td>
                     </tr>
