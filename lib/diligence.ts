@@ -44,7 +44,7 @@ export function calculateDiligence(
     string,
     {
       massDates: Set<string>;
-      otherAttendanceDates: Set<string>;
+      catechismDates: Set<string>;
       catechismAbsentDates: Set<string>;
     }
   >();
@@ -68,7 +68,7 @@ export function calculateDiligence(
     if (!student) {
       student = {
         massDates: new Set(),
-        otherAttendanceDates: new Set(),
+        catechismDates: new Set(),
         catechismAbsentDates: new Set(),
       };
 
@@ -76,11 +76,11 @@ export function calculateDiligence(
     }
     // Đi lễ thứ Hai, Ba, Tư: tính vào điểm danh khác.
     if (
-      record.attendanceType === 1 &&
+      record.attendanceType === 2 &&
       record.status === "present" &&
-      [1, 2, 3].includes(weekday)
+      weekday === 0
     ) {
-      student.otherAttendanceDates.add(date);
+      student.catechismDates.add(date);
     }
 
     // Thánh lễ: thứ Năm, Sáu, Bảy và Chủ nhật.
@@ -121,7 +121,7 @@ export function calculateDiligence(
       studentCode,
       fullName: student.fullName,
       massPoints,
-      otherAttendancePoints: statistic?.otherAttendanceDates.size ?? 0,
+      catechismPoints: statistic?.catechismDates.size ?? 0,
       requiredMassPoints,
       missingMassPoints,
       extraMassPoints: Math.max(

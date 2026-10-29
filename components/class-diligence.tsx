@@ -321,7 +321,7 @@ export default function ClassDiligence({
                 <tr>
                   <th>Học viên</th>
                   <th>Điểm lễ</th>
-                  <th>Điểm danh khác</th>
+                  <th>Điểm giáo lý</th>
                   <th>Yêu cầu</th>
                   <th>Còn thiếu</th>
                   <th>Vắng giáo lý</th>
@@ -339,7 +339,7 @@ export default function ClassDiligence({
 
                     <td>{row.matched ? row.massPoints : "—"}</td>
                     <td>
-                      {row.matched ? row.otherAttendancePoints : "—"}
+                      {row.matched ? row.catechismPoints : "—"}
                     </td>
                     <td>{row.requiredMassPoints}</td>
                     <td>
