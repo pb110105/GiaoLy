@@ -7,18 +7,16 @@
   gap: 24px;
   padding: clamp(20px, 4vw, 64px);
   color: #263330;
-  background:
-    radial-gradient(
-      ellipse at 10% 15%,
-      rgba(151, 103, 94, 0.28),
-      transparent 45%
+  background-color: #e6e0d8;
+  background-image:
+    linear-gradient(
+      rgba(246, 242, 235, 0.12),
+      rgba(246, 242, 235, 0.12)
     ),
-    radial-gradient(
-      ellipse at 90% 85%,
-      rgba(126, 144, 133, 0.3),
-      transparent 45%
-    ),
-    linear-gradient(135deg, #e6e0d8, #f5f2ec 50%, #d5dcd5);
+    url("/images/login-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
 }
 
 .loginPage,
@@ -35,24 +33,17 @@
   overflow: hidden;
   border: 1px solid rgba(255, 255, 255, 0.85);
   border-radius: 34px;
-  background: rgba(255, 255, 255, 0.7);
   box-shadow:
     0 24px 65px rgba(49, 42, 35, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  -webkit-backdrop-filter: blur(24px);
-  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(14px);
+  backdrop-filter: blur(14px);
 }
 
 .introduction {
   display: flex;
   color: #392c29;
-  background:
-    radial-gradient(
-      circle at 100% 100%,
-      rgba(151, 47, 50, 0.12),
-      transparent 55%
-    ),
-    rgba(255, 250, 245, 0.62);
+  background:rgba(255, 249, 243, 0.82);
 }
 
 .introductionContent {
@@ -202,6 +193,7 @@
   align-items: center;
   justify-content: center;
   padding: clamp(28px, 4vw, 64px);
+  background: rgba(255, 255, 255, 0.9);
 }
 
 .mobileBrand {
@@ -622,30 +614,4 @@
   .copyright {
     margin-top: 16px;
   }
-}
-/* Ảnh nền phía sau trang đăng nhập */
-.loginPage {
-  background-image:
-    linear-gradient(
-      rgba(246, 242, 235, 0.12),
-      rgba(246, 242, 235, 0.12)
-    ),
-    url("/images/login-background.png");
-  background-size: cover;
-  background-position: center;
-  background-repeat: no-repeat;
-}
-
-/* Kính mờ bên giới thiệu, giữ chữ dễ đọc */
-.introduction {
-  background: rgba(255, 249, 243, 0.82);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
-}
-
-/* Khung đăng nhập sáng hơn để dễ nhập thông tin */
-.formSection {
-  background: rgba(255, 255, 255, 0.9);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
 }
