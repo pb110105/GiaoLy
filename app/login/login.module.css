@@ -36,14 +36,14 @@
   box-shadow:
     0 24px 65px rgba(49, 42, 35, 0.12),
     inset 0 1px 0 rgba(255, 255, 255, 0.95);
-  -webkit-backdrop-filter: blur(14px);
-  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(8px);
+  backdrop-filter: blur(8px);
 }
 
 .introduction {
   display: flex;
   color: #392c29;
-  background:rgba(255, 249, 243, 0.82);
+  background:rgba(255, 249, 243, 0.62);
 }
 
 .introductionContent {
@@ -138,7 +138,7 @@
   padding: 20px;
   border: 1px solid rgba(255, 255, 255, 0.95);
   border-radius: 22px;
-  background: rgba(255, 255, 255, 0.65);
+  background: rgba(255, 255, 255, 0.4);
 }
 
 .feature > span {
@@ -193,7 +193,7 @@
   align-items: center;
   justify-content: center;
   padding: clamp(28px, 4vw, 64px);
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.68);
 }
 
 .mobileBrand {
