@@ -131,35 +131,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .secondary-button { height: 38px; display: inline-flex; align-items: center; justify-content: center; gap: 8px; padding: 0 13px; border: 1px solid #dfe4dd; border-radius: 9px; color: #52605f; background: #fffefb; font-size: 10.5px; font-weight: 500; cursor: pointer; }
 .secondary-button:hover { border-color: #bbc8c2; color: var(--navy-900); }
 
-.stat-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 15px; }
-.stat-card {
-  min-height: 96px;
-  display: grid;
-  grid-template-columns: 40px 1fr auto;
-  align-items: center;
-  gap: 12px;
-  padding: 18px;
-  border: 1px solid rgba(255, 255, 255, 0.9);
-  border-radius: 22px;
-  background: rgba(255, 255, 255, 0.6);
-  box-shadow:
-    0 8px 24px rgba(65, 39, 30, 0.06),
-    inset 0 1px 0 rgba(255, 255, 255, 0.8);
-  -webkit-backdrop-filter: blur(12px);
-  backdrop-filter: blur(12px);
-}
-.stat-icon { width: 39px; height: 39px; display: grid; place-items: center; border-radius: 11px; }
-.stat-icon.navy { color: #305b5c; background: #e5efeb; }
-.stat-icon.sky { color: #4d86a3; background: #e8f2f6; }
-.stat-icon.mint { color: #4f8275; background: #e6f3ed; }
-.stat-icon.amber { color: #b17a23; background: #fff2d5; }
-.stat-copy { display: flex; flex-direction: column; }
-.stat-copy span { color: #514b45; font-size: 9.5px; }
-.stat-copy strong { margin-top: 4px; color: #263b3c; font-family: var(--font-lora), serif; font-size: 24px; line-height: 1; }
-.trend { display: flex; align-items: center; gap: 3px; align-self: end; margin-bottom: 3px; padding: 4px 7px; border-radius: 99px; font-size: 8px; font-weight: 600; }
-.trend.positive { color: #397367; background: #e5f3ed; }
-.trend.neutral { color: #71807d; background: #f0f2ee; }
-.mini-link { align-self: end; display: flex; align-items: center; gap: 2px; margin-bottom: 4px; padding: 0; border: 0; color: #b0762e; background: none; font-size: 8.5px; cursor: pointer; }
 
 .dashboard-grid { display: grid; grid-template-columns: minmax(0, 1.6fr) minmax(300px, 1fr); gap: 15px; margin-bottom: 15px; }
 .bottom-grid { display: grid; grid-template-columns: minmax(0, 1.72fr) minmax(300px, .88fr); gap: 15px; }
@@ -572,7 +543,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @media (max-width: 1120px) {
-  .stat-grid { grid-template-columns: repeat(2, 1fr); }
   .bottom-grid { grid-template-columns: 1fr; }
   .class-grid { grid-template-columns: repeat(2, 1fr); }
   .attendance-layout { grid-template-columns: 1fr; }
@@ -637,7 +607,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .feature-grid { grid-template-columns: 1fr; }
   .roadmap-card { grid-template-columns: 42px 1fr; }
   .roadmap-card .secondary-button { grid-column: 1 / -1; }
-  .stat-grid { grid-template-columns: 1fr 1fr; gap: 9px; }
   .stat-card { min-height: 110px; grid-template-columns: 37px 1fr; padding: 14px; }
   .stat-icon { width: 36px; height: 36px; }
   .trend, .mini-link { grid-column: 1 / -1; align-self: center; justify-self: start; margin: 0; }
@@ -656,11 +625,6 @@ button, a { -webkit-tap-highlight-color: transparent; }
   .toast { left: 15px; right: 15px; bottom: 15px; justify-content: center; }
 }
 
-@media (max-width: 400px) {
-  .stat-grid { grid-template-columns: 1fr; }
-  .stat-card { min-height: 82px; grid-template-columns: 38px 1fr auto; }
-  .trend, .mini-link { grid-column: auto; align-self: end; justify-self: auto; margin-bottom: 3px; }
-}
 
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; animation: none !important; }

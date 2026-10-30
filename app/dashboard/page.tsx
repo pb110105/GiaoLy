@@ -12,7 +12,6 @@ import {
 import { useRouter } from "next/navigation";
 import StudentExcelImport from "@/components/student-excel-import";
 import {
-  AlertCircle,
   ArrowUpRight,
   BarChart3,
   Bell,
@@ -690,31 +689,6 @@ if (!dashboardData) {
               <p>Đây là tình hình sinh hoạt giáo lý của giáo xứ hôm nay.</p>
             </div>
             <button className="secondary-button"><Download size={17} />Xuất báo cáo</button>
-          </section>
-
-          <section className="stat-grid" aria-label="Số liệu tổng quan">
-            <article className="stat-card">
-              <div className="stat-icon navy"><UsersRound size={21} /></div>
-              <div className="stat-copy"><span>Học viên phụ trách</span><strong>{studentCount}</strong></div>
-              <span className="trend positive">Theo lớp phụ trách</span>
-            </article>
-            <article className="stat-card">
-              <div className="stat-icon sky"><BookOpen size={21} /></div>
-              <div className="stat-copy"><span>Lớp đang học</span><strong>{String(classCount).padStart(2, "0")}</strong></div>
-              <span className="trend neutral">
-                Theo phân công
-              </span>
-            </article>
-            <article className="stat-card">
-              <div className="stat-icon mint"><UserCheck size={21} /></div>
-              <div className="stat-copy"><span>Chuyên cần</span><strong>-</strong></div>
-              <span className="trend neutral">Chưa tổng hợp CCAMS</span>
-            </article>
-            <article className="stat-card warning-card">
-              <div className="stat-icon amber"><AlertCircle size={21} /></div>
-              <div className="stat-copy"><span>Hồ sơ cần bổ sung</span><strong>—</strong>
-              <span className="trend neutral">Chưa có dữ liệu hồ sơ</span></div>
-            </article>
           </section>
 
           <section className="dashboard-grid">
