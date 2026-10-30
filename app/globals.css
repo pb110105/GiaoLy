@@ -50,15 +50,20 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .sidebar {
   position: fixed;
   z-index: 40;
-  inset: 0 auto 0 0;
+  inset: 12px auto 12px 12px;
   width: 260px;
   display: flex;
   flex-direction: column;
   padding: 25px 18px 18px;
-  background: rgba(110, 8, 16, 0.88);
-  -webkit-backdrop-filter: blur(16px);
-  backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.4);
+  border-radius: 28px;
+  background: rgba(110, 8, 16, 0.7);
+  -webkit-backdrop-filter: blur(18px);
+  backdrop-filter: blur(18px);
   color: #ecf3ee;
+  box-shadow:
+    0 16px 40px rgba(65, 15, 18, 0.18),
+    inset 0 1px 0 rgba(255, 255, 255, 0.18);
 }
 .brand-row { display: flex; align-items: center; gap: 12px; padding: 0 7px; }
 .logo-mark { width: 41px; height: 41px; display: grid; place-items: center; flex: 0 0 41px; color: var(--navy-950); background: #f6dfaa; border-radius: 13px 13px 13px 5px; }
@@ -97,7 +102,10 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .sidebar-user span { margin-top: 2px; color: #8ca29e; font-size: 8.5px; }
 .sidebar-user > svg { color: #879d98; }
 
-.main-area { min-height: 100vh; margin-left: 260px; }
+.main-area {
+  min-height: 100vh;
+  margin-left: 284px;
+}
 .topbar {
   height: 69px;
   display: flex;
@@ -477,7 +485,7 @@ button, a { -webkit-tap-highlight-color: transparent; }
   }
 
   .main-area.sidebar-collapsed {
-    margin-left: 84px;
+    margin-left: 108px;
   }
 }
 @keyframes fade-in { from { opacity: 0; } }
@@ -556,7 +564,12 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 @media (max-width: 860px) {
-  .sidebar { transform: translateX(-105%); transition: transform .25s ease; box-shadow: 18px 0 45px rgba(12, 34, 36, .28); }
+.sidebar {
+  width: min(260px, calc(100vw - 24px));
+  transform: translateX(calc(-100% - 24px));
+  transition: transform 0.25s ease;
+  box-shadow: 18px 0 45px rgba(12, 34, 36, 0.28);
+}
   .sidebar.open { transform: translateX(0); }
   .sidebar-scrim { position: fixed; z-index: 35; inset: 0; display: block; border: 0; background: rgba(13, 31, 34, .38); opacity: 0; pointer-events: none; transition: opacity .2s ease; }
   .sidebar-scrim.show { opacity: 1; pointer-events: auto; }
