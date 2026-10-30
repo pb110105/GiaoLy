@@ -188,6 +188,7 @@ export default function Home() {
   
   const [dashboardError, setDashboardError] = useState("");
   const [activeView, setActiveView] = useState("dashboard");
+  const [overviewClassId, setOverviewClassId] = useState("");
   const [sidebarOpen, setSidebarOpen] = useState(false);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [showAddStudent, setShowAddStudent] = useState(false);
@@ -692,7 +693,7 @@ if (!dashboardData) {
           </section>
 
           <section className="dashboard-grid">
-            <article className="panel attendance-panel">
+            <div className="panel attendance-panel" style={{ minWidth: 0 }}>
               <div className="panel-heading">
                 <div>
                   <span className="panel-kicker">CHUYÊN CẦN</span>
@@ -700,10 +701,61 @@ if (!dashboardData) {
                 </div>
               </div>
 
-              <div className="empty-search">
-                Chưa tổng hợp dữ liệu CCAMS cho niên khóa {schoolYear}.
+              <div className="ccams-filter-grid" style={{ margin: "20px 0" }}>
+                <label>
+                  <span>Lớp giáo lý · {schoolYear}</span>
+
+                  <select
+                    value={
+                      classes.some((item) => item.id === overviewClassId)
+                        ? overviewClassId
+                        : ""
+                    }
+                    onChange={(event) => setOverviewClassId(event.target.value)}
+                  >
+                    <option value="">Chọn lớp cần thống kê</option>
+
+                    {classes.map((item) => (
+                      <option key={item.id} value={item.id}>
+                        {item.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
-            </article>
+
+              {(() => {
+                const selectedClass = classes.find(
+                  (item) => item.id === overviewClassId,
+                );
+
+                if (!selectedClass) {
+                  return (
+                    <p className="empty-search">
+                      {classes.length === 0
+                        ? "Chưa có lớp trong niên khóa này."
+                        : "Chọn lớp để tra cứu chuyên cần từ CCAMS."}
+                    </p>
+                  );
+                }
+
+                return (
+                  <ClassDiligence
+                    key={`overview-${schoolYear}-${selectedClass.id}`}
+                    embedded
+                    className={selectedClass.name}
+                    schoolYear={schoolYear}
+                    students={yearData.students
+                      .filter((student) => student.classId === selectedClass.id)
+                      .map((student) => ({
+                        studentCode: student.ccamsStudentCode || "",
+                        fullName: student.fullName,
+                      }))}
+                    onBack={() => setActiveView("classes")}
+                  />
+                );
+              })()}
+            </div>
 
             <article className="panel schedule-panel">
               <div className="panel-heading">

@@ -13,6 +13,7 @@ type Props = {
   schoolYear: string;
   students: DiligenceStudent[];
   onBack: () => void;
+  embedded?: boolean;
 };
 
 type ResultRow =
@@ -112,6 +113,7 @@ export default function ClassDiligence({
   schoolYear,
   students,
   onBack,
+  embedded = false,
 }: Props) {
   const [fromDate, setFromDate] = useState("");
   const [toDate, setToDate] = useState(today);
@@ -225,6 +227,7 @@ export default function ClassDiligence({
 
   return (
     <section className="module-view">
+      {!embedded && (
       <div className="module-heading">
         <div>
           <span className="eyebrow">CHUYÊN CẦN</span>
@@ -241,7 +244,7 @@ export default function ClassDiligence({
           Quay lại lớp giáo lý
         </button>
       </div>
-
+      )}
       <article className="panel">
         <form
           className="ccams-filters"
