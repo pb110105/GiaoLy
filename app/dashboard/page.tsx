@@ -13,7 +13,6 @@ import { useRouter } from "next/navigation";
 import StudentExcelImport from "@/components/student-excel-import";
 import {
   ArrowUpRight,
-  BarChart3,
   Bell,
   BookOpen,
   CalendarDays,
@@ -120,7 +119,6 @@ const navigation: NavItem[] = [
   { id: "classes", label: "Lớp giáo lý", icon: BookOpen },
   { id: "attendance", label: "Điểm danh", icon: ClipboardCheck },
   { id: "sacraments", label: "Bí tích (Comming Soon)", icon: Cross },
-  { id: "reports", label: "Báo cáo (Comming Soon)", icon: BarChart3 },
 ];
 
 
@@ -130,12 +128,6 @@ const featureSets: Record<string, Array<{ title: string; caption: string; icon: 
     { title: "Rước Lễ Lần Đầu", caption: "56 đang chuẩn bị", icon: BookOpen },
     { title: "Thêm Sức", caption: "62 đang chuẩn bị", icon: UserCheck },
     { title: "Chứng nhận", caption: "12 cần bổ sung", icon: FileText },
-  ],
-  reports: [
-    { title: "Danh sách học viên", caption: "Theo lớp và khối", icon: UsersRound },
-    { title: "Báo cáo chuyên cần", caption: "Theo tuần và học kỳ", icon: ClipboardCheck },
-    { title: "Tiến độ lớp học", caption: "So sánh 8 lớp", icon: BarChart3 },
-    { title: "Hồ sơ Bí tích", caption: "Tổng hợp chứng nhận", icon: FileText },
   ],
   settings: [
     { title: "Thông tin giáo xứ", caption: "Tên và thông tin liên hệ", icon: Cross },
@@ -635,20 +627,6 @@ if (!dashboardData) {
           })}
           <span className="nav-heading nav-heading-spaced">HỆ THỐNG</span>
           <button className="nav-item" onClick={() => selectView("settings")}><Settings size={19} strokeWidth={1.9} /><span>Cài đặt</span></button>
-          <button
-            type="button"
-            className="nav-item logout-button"
-            disabled={isLoggingOut}
-            onClick={() => void handleLogout()}
-          >
-            <LogOut size={19} strokeWidth={1.9} />
-
-            <span>
-              {isLoggingOut
-                ? "Đang đăng xuất..."
-                : "Đăng xuất"}
-            </span>
-          </button>
         </nav>
 
         <div className="sidebar-support">
@@ -663,6 +641,20 @@ if (!dashboardData) {
           <div><strong>{teacherName}</strong><span>Giáo Lý Viên</span></div>
           <MoreHorizontal size={18} />
         </div>
+        <button
+            type="button"
+            className="nav-item logout-button"
+            disabled={isLoggingOut}
+            onClick={() => void handleLogout()}
+          >
+            <LogOut size={19} strokeWidth={1.9} />
+
+            <span>
+              {isLoggingOut
+                ? "Đang đăng xuất..."
+                : "Đăng xuất"}
+            </span>
+          </button>
       </aside>
 
       <main className={`main-area ${
@@ -1067,13 +1059,22 @@ if (!dashboardData) {
             <CcamsAttendance />
           )}
 
-          {(activeView === "sacraments" || activeView === "reports" || activeView === "settings") && (
+          {(activeView === "sacraments" || activeView === "settings") && (
             <section className="module-view">
               <div className="module-heading">
                 <div>
                   <span className="eyebrow">GIÁO LÝ HUB</span>
-                  <h1>{activeView === "sacraments" ? "Theo dõi Bí tích" : activeView === "reports" ? "Báo cáo và thống kê" : "Cài đặt hệ thống"}</h1>
-                  <p>{activeView === "sacraments" ? "Lưu tiến trình và chứng nhận Bí tích của từng học viên." : activeView === "reports" ? "Tổng hợp số liệu học viên, chuyên cần và kết quả niên khóa." : "Thiết lập giáo xứ, niên khóa và quyền sử dụng."}</p>
+                  <h1>
+                    {activeView === "sacraments"
+                      ? "Theo dõi Bí tích"
+                      : "Cài đặt hệ thống"}
+                  </h1>
+
+                  <p>
+                    {activeView === "sacraments"
+                      ? "Lưu tiến trình và chứng nhận Bí tích của từng học viên."
+                      : "Thiết lập giáo xứ, niên khóa và quyền sử dụng."}
+                  </p>
                 </div>
               </div>
               <div className="feature-grid">

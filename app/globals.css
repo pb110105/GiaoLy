@@ -57,7 +57,8 @@ button, a { -webkit-tap-highlight-color: transparent; }
   padding: 25px 18px 18px;
   border: 1px solid rgba(255, 255, 255, 0.4);
   border-radius: 28px;
-  background: rgba(110, 8, 16, 0.7);
+  min-height: 0;
+  background: rgba(92, 20, 32, 0.86);
   -webkit-backdrop-filter: blur(18px);
   backdrop-filter: blur(18px);
   color: #ecf3ee;
@@ -81,7 +82,22 @@ button, a { -webkit-tap-highlight-color: transparent; }
 .brand-row span { color: #9eb3ae; font-size: 10.5px; margin-top: 3px; }
 .close-sidebar { display: none !important; margin-left: auto; color: #d8e4df !important; }
 
-.sidebar-nav { display: flex; flex-direction: column; gap: 5px; }
+.sidebar-nav {
+  display: flex;
+  flex: 1;
+  min-height: 0;
+  flex-direction: column;
+  gap: 5px;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  scrollbar-width: thin;
+  scrollbar-color: rgba(255, 255, 255, 0.35) transparent;
+}
+.sidebar > .brand-row,
+.sidebar > .sidebar-support,
+.sidebar > .sidebar-user {
+  flex-shrink: 0;
+}
 .nav-heading { margin: 0 12px 6px; color: #7e9792; font-size: 9px; font-weight: 700; letter-spacing: 1.6px; }
 .nav-heading-spaced { margin-top: 18px; }
 .nav-item { width: 100%; min-height: 43px; display: flex; align-items: center; gap: 12px; padding: 0 13px; border: 0; border-radius: 10px; color: #aebfbb; background: transparent; font-size: 12.5px; text-align: left; cursor: pointer; transition: .18s ease; }
@@ -352,11 +368,11 @@ button, a { -webkit-tap-highlight-color: transparent; }
 }
 
 .nav-heading {
-  color: rgba(255, 255, 255, 0.55);
+  color: #e9c4b8;
 }
 
 .nav-item {
-  color: rgba(255, 255, 255, 0.72);
+  color: #fff0e5;
 }
 
 .nav-item:hover {
@@ -1366,15 +1382,22 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .logout-button {
   width: 100%;
-  margin-top: 10px;
-  color: #ffe7e5;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  background: rgba(255, 255, 255, 0.08);
+  min-height: 44px;
+  flex-shrink: 0;
+  justify-content: flex-start;
+  margin-top: 14px;
+  padding: 10px 14px;
+  border: 1px solid rgba(255, 231, 218, 0.4);
+  border-radius: 14px;
+  color: #fff5e9;
+  background: rgba(255, 240, 224, 0.12);
+  font-weight: 600;
 }
 
 .logout-button:hover:not(:disabled) {
   color: #ffffff;
-  background: rgba(255, 255, 255, 0.16);
+  border-color: rgba(255, 231, 218, 0.65);
+  background: rgba(255, 240, 224, 0.22);
 }
 
 .logout-button:disabled {
@@ -1384,6 +1407,9 @@ button, a { -webkit-tap-highlight-color: transparent; }
 
 .sidebar.collapsed .logout-button {
   justify-content: center;
+}
+.sidebar.collapsed .logout-button span {
+  display: none;
 }
 .seating-class-select {
   min-width: 230px;
